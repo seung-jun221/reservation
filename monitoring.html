@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VIP 설명회 예약 모니터링 - i.study</title>
+
+    <!-- Supabase 클라이언트 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- CSS 파일 -->
+    <link rel="stylesheet" href="assets/css/monitoring.css" />
+
+    <!-- 파비콘 -->
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <!-- 헤더 -->
+    <div class="header">
+      <div class="header-content">
+        <h1>VIP 설명회 예약 모니터링</h1>
+        <div class="header-info">
+          <span class="connection-status" id="connectionStatus">
+            <span class="status-dot"></span>
+            <span class="status-text">연결중...</span>
+          </span>
+          <span class="last-update" id="lastUpdate">마지막 업데이트: -</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- 통계 카드 -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="totalReservations">0</div>
+          <div class="stat-label">전체 예약</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-number" id="totalAttended">0</div>
+          <div class="stat-label">참석 확정</div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-number" id="totalPending">0</div>
+          <div class="stat-label">참석 대기</div>
+        </div>
+        <div class="stat-card info">
+          <div class="stat-number" id="totalWaitlist">0</div>
+          <div class="stat-label">대기예약</div>
+        </div>
+      </div>
+
+      <!-- 검색/필터 섹션 -->
+      <div class="search-section">
+        <div class="search-controls">
+          <div class="search-group">
+            <label class="search-label">설명회 선택</label>
+            <select class="search-input" id="filterSeminar">
+              <option value="">전체 설명회</option>
+              <!-- 동적으로 추가됨 -->
+            </select>
+          </div>
+          <div class="search-group">
+            <label class="search-label">상태</label>
+            <select class="search-input" id="filterStatus">
+              <option value="">전체 상태</option>
+              <option value="예약">예약</option>
+              <option value="참석">참석</option>
+              <option value="불참">불참</option>
+              <option value="취소">취소</option>
+              <option value="대기">대기예약</option>
+            </select>
+          </div>
+          <div class="search-group">
+            <label class="search-label">학생명</label>
+            <input
+              type="text"
+              class="search-input"
+              id="searchStudentName"
+              placeholder="학생명 검색"
+            />
+          </div>
+          <div class="search-group">
+            <label class="search-label">전화번호</label>
+            <input
+              type="text"
+              class="search-input"
+              id="searchPhone"
+              placeholder="전화번호 검색"
+            />
+          </div>
+          <div class="search-group">
+            <label class="search-label">학교</label>
+            <input
+              type="text"
+              class="search-input"
+              id="searchSchool"
+              placeholder="학교명 검색"
+            />
+          </div>
+        </div>
+        <div class="search-actions">
+          <button class="btn btn-primary" onclick="applyFilters()">검색</button>
+          <button class="btn btn-secondary" onclick="resetFilters()">
+            초기화
+          </button>
+          <button class="btn btn-success" onclick="exportToExcel()">
+            엑셀 다운로드
+          </button>
+          <button class="btn btn-refresh" onclick="refreshData()">
+            <span id="refreshIcon">🔄</span> 새로고침
+          </button>
+        </div>
+      </div>
+
+      <!-- 선택된 항목 액션 바 (기본 숨김) -->
+      <div class="bulk-actions hidden" id="bulkActions">
+        <div class="bulk-info"><span id="selectedCount">0</span>개 선택됨</div>
+        <div class="bulk-buttons">
+          <button
+            class="btn btn-sm btn-success"
+            onclick="bulkUpdateStatus('참석')"
+          >
+            일괄 참석
+          </button>
+          <button
+            class="btn btn-sm btn-danger"
+            onclick="bulkUpdateStatus('불참')"
+          >
+            일괄 불참
+          </button>
+          <button
+            class="btn btn-sm btn-warning"
+            onclick="bulkUpdateStatus('취소')"
+          >
+            일괄 취소
+          </button>
+          <button class="btn btn-sm btn-secondary" onclick="clearSelection()">
+            선택 해제
+          </button>
+        </div>
+      </div>
+
+      <!-- 데이터 테이블 -->
+      <div class="table-section">
+        <div class="table-header">
+          <h3>예약 목록</h3>
+          <div class="table-info">
+            <span id="recordInfo">전체 0건</span>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="dataTable">
+            <thead>
+              <tr>
+                <th class="checkbox-column">
+                  <input
+                    type="checkbox"
+                    id="selectAll"
+                    onchange="toggleSelectAll()"
+                  />
+                </th>
+                <th>번호</th>
+                <th>예약번호</th>
+                <th>설명회</th>
+                <th>학생명</th>
+                <th>연락처</th>
+                <th>학교</th>
+                <th>학년</th>
+                <th>수학 선행</th>
+                <th>예약일시</th>
+                <th>상태</th>
+                <th>참석여부</th>
+                <th>액션</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- 동적으로 추가됨 -->
+            </tbody>
+          </table>
+
+          <!-- 로딩 표시 -->
+          <div class="loading-container hidden" id="loadingContainer">
+            <div class="spinner"></div>
+            <p>데이터를 불러오는 중...</p>
+          </div>
+
+          <!-- 데이터 없음 표시 -->
+          <div class="no-data hidden" id="noDataContainer">
+            <p>표시할 데이터가 없습니다.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 토스트 메시지 -->
+    <div class="toast" id="toast"></div>
+
+    <!-- 편집 모달 -->
+    <div class="modal hidden" id="editModal">
+      <div class="modal-overlay" onclick="closeEditModal()"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>예약 정보 수정</h3>
+          <button class="modal-close" onclick="closeEditModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <form id="editForm">
+            <input type="hidden" id="editId" />
+            <div class="form-group">
+              <label>학생명</label>
+              <input type="text" id="editStudentName" required />
+            </div>
+            <div class="form-group">
+              <label>연락처</label>
+              <input type="text" id="editPhone" required />
+            </div>
+            <div class="form-group">
+              <label>학교</label>
+              <input type="text" id="editSchool" required />
+            </div>
+            <div class="form-group">
+              <label>학년</label>
+              <select id="editGrade" required>
+                <option value="초1">초등학교 1학년</option>
+                <option value="초2">초등학교 2학년</option>
+                <option value="초3">초등학교 3학년</option>
+                <option value="초4">초등학교 4학년</option>
+                <option value="초5">초등학교 5학년</option>
+                <option value="초6">초등학교 6학년</option>
+                <option value="중1">중학교 1학년</option>
+                <option value="중2">중학교 2학년</option>
+                <option value="중3">중학교 3학년</option>
+                <option value="고1">고등학교 1학년</option>
+                <option value="고2">고등학교 2학년</option>
+                <option value="고3">고등학교 3학년</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>수학 선행정도</label>
+              <input type="text" id="editMathLevel" />
+            </div>
+            <div class="form-group">
+              <label>메모</label>
+              <textarea id="editNotes" rows="3"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeEditModal()">
+            취소
+          </button>
+          <button class="btn btn-primary" onclick="saveEdit()">저장</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- JavaScript 파일들 -->
+    <script src="assets/js/supabase-config.js"></script>
+    <script src="assets/js/monitoring.js"></script>
+  </body>
+</html>
