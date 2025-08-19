@@ -212,73 +212,74 @@ function getFallbackSchedule() {
 }
 
 // ===== 최적화된 로드 함수 =====
-// loadSeminarScheduleOptimized 함수를 다음과 같이 수정하세요
-
+// ===== Supabase로 설명회 정보 로드 (교체용) =====
 async function loadSeminarScheduleOptimized() {
-  console.log('API 호출 시작');
+  console.log('Supabase에서 설명회 정보 로드 시작');
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    // 1. Supabase에서 활성 설명회 가져오기
+    const { data: seminars, error } = await supabase
+      .from('seminars')
+      .select('*')
+      .eq('status', 'active')
+      .order('date', { ascending: true });
 
-    const response = await fetch(`${API_URL}?action=getSeminarSchedule`, {
-      signal: controller.signal,
-      method: 'GET',
-      cache: 'no-cache',
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (error) {
+      console.error('Supabase 오류:', error);
+      return false;
     }
 
-    const data = await response.json();
-    console.log('API 응답:', data);
+    console.log('Supabase 설명회 데이터:', seminars);
 
-    // API 응답 형식 자동 감지
-    let scheduleData = [];
+    // 2. 각 설명회의 예약 수 계산
+    const scheduleWithStatus = [];
 
-    // Case 1: 정상적인 객체 응답 { success: true, schedule: [...] }
-    if (data && typeof data === 'object' && !Array.isArray(data)) {
-      if (data.success && data.schedule && Array.isArray(data.schedule)) {
-        scheduleData = data.schedule;
-      } else if (data.schedule && Array.isArray(data.schedule)) {
-        // success 필드가 없어도 schedule이 있으면 처리
-        scheduleData = data.schedule;
+    for (let seminar of seminars) {
+      // 예약 수 가져오기
+      const { count: reservedCount } = await supabase
+        .from('reservations')
+        .select('*', { count: 'exact', head: true })
+        .eq('seminar_id', seminar.id)
+        .eq('status', '예약');
+
+      const reserved = reservedCount || 0;
+      const available = seminar.display_capacity - reserved;
+
+      // 날짜 확인 (지난 설명회 제외)
+      const seminarDateTime = new Date(seminar.date + 'T' + seminar.time);
+      const now = new Date();
+      const isPast = seminarDateTime < now;
+
+      if (!isPast) {
+        scheduleWithStatus.push({
+          id: seminar.id,
+          title: seminar.title,
+          date: seminar.date,
+          time: seminar.time.substring(0, 5), // "10:30:00" → "10:30"
+          location: seminar.location,
+          maxCapacity: seminar.max_capacity,
+          displayCapacity: seminar.display_capacity,
+          duration: seminar.duration,
+          reserved: reserved,
+          available: available,
+          isFull: reserved >= seminar.max_capacity,
+          isPast: false,
+          status: seminar.status,
+        });
       }
     }
-    // Case 2: 배열이 직접 반환되는 경우
-    else if (Array.isArray(data)) {
-      scheduleData = data;
-    }
 
-    console.log('추출된 schedule 데이터:', scheduleData);
+    console.log('활성 설명회:', scheduleWithStatus);
 
-    // 활성화되고 아직 진행되지 않은 설명회만 필터링
-    const activeSchedule = scheduleData.filter((s) => {
-      // status가 없으면 active로 간주
-      const isActive = !s.status || s.status === 'active';
-      const isNotPast = !s.isPast;
-      return isActive && isNotPast;
-    });
+    // 3. 전역 변수 업데이트
+    seminarSchedule = scheduleWithStatus;
 
-    console.log('활성 설명회:', activeSchedule);
+    // 4. 캐시 저장
+    setCachedData(scheduleWithStatus);
 
-    if (activeSchedule.length >= 0) {
-      // 0개여도 정상 처리
-      seminarSchedule = activeSchedule;
-      setCachedData(activeSchedule);
-      return true;
-    }
-
-    return false;
+    return true;
   } catch (error) {
-    if (error.name === 'AbortError') {
-      console.error('요청 시간 초과');
-    } else {
-      console.error('API 호출 오류:', error);
-    }
+    console.error('API 호출 오류:', error);
     return false;
   }
 }
