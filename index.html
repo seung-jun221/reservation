@@ -23,7 +23,16 @@
         <p class="select-guide">참석하실 설명회를 선택해주세요</p>
 
         <!-- 설명회 선택 영역 (동적으로 추가됨) -->
-        <div id="seminarSelectionArea"></div>
+        <div id="seminarSelectionArea">
+          <!-- 초기 로딩 표시 -->
+          <div class="initial-loading">
+            <div class="spinner"></div>
+            <p>설명회 정보를 불러오는 중입니다...</p>
+            <p style="font-size: 12px; color: #999; margin-top: 5px">
+              잠시만 기다려주세요
+            </p>
+          </div>
+        </div>
 
         <!-- 마감 안내 (기본적으로 숨김) -->
         <div id="fullNotice" class="full-notice hidden">

@@ -553,6 +553,20 @@ textarea:focus {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
+/* 초기 로딩 스타일 */
+.initial-loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.initial-loading p {
+  margin-top: 15px;
+  font-size: 16px;
+  color: #333;
+}
+
+/* 스피너 개선 */
 .spinner {
   border: 3px solid #f3f3f3;
   border-top: 3px solid #1a73e8;
@@ -560,7 +574,7 @@ textarea:focus {
   width: 40px;
   height: 40px;
   animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
+  margin: 0 auto;
 }
 
 @keyframes spin {

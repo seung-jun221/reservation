@@ -23,18 +23,84 @@ document.addEventListener('DOMContentLoaded', function () {
     noticeElement.classList.add('hidden');
     noticeElement.style.display = 'none';
   }
-  console.log('페이지 로드 - 초기화 완료');
+
+  // 초기 로딩 표시 유지
+  const defaultInfoBox = document.getElementById('defaultInfoBox');
+  const reserveBtn = document.getElementById('reserveBtn');
+
+  // 정보 박스와 버튼 숨기기
+  if (defaultInfoBox) defaultInfoBox.style.display = 'none';
+  if (reserveBtn) reserveBtn.style.display = 'none';
+
+  console.log('페이지 로드 - 설명회 정보 로딩 시작');
 
   // 초기 로드 시 설명회 정보 확인
   loadSeminarSchedule()
     .then(() => {
+      console.log('설명회 정보 로드 완료');
+      // 선택 가이드 표시
+      document.querySelector('.select-guide').style.display = 'block';
+      // 정보 박스와 버튼 표시
+      if (defaultInfoBox) defaultInfoBox.style.display = 'block';
+      if (reserveBtn) reserveBtn.style.display = 'block';
       displaySeminarSelection();
     })
     .catch((error) => {
       console.error('초기 로드 실패:', error);
-      showAlert('설명회 정보를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.');
+      const container = document.getElementById('seminarSelectionArea');
+      container.innerHTML = `
+            <div class="error">
+                <p style="font-size: 16px; margin-bottom: 10px;">설명회 정보를 불러올 수 없습니다.</p>
+                <p style="font-size: 14px; color: #666;">잠시 후 다시 시도해주세요.</p>
+                <button class="btn btn-primary" onclick="retryLoadSeminars()" style="margin-top: 15px;">다시 시도</button>
+            </div>
+        `;
+      // 에러 시에도 버튼은 표시 (비활성화 상태)
+      if (defaultInfoBox) {
+        defaultInfoBox.style.display = 'block';
+        defaultInfoBox.innerHTML =
+          '<p style="color: #999;">설명회 정보를 불러올 수 없습니다.</p>';
+      }
+      if (reserveBtn) {
+        reserveBtn.style.display = 'block';
+        reserveBtn.disabled = true;
+        reserveBtn.textContent = '설명회 정보를 불러오는 중...';
+      }
     });
 });
+
+// 재시도 함수
+function retryLoadSeminars() {
+  const container = document.getElementById('seminarSelectionArea');
+  container.innerHTML = `
+        <div class="initial-loading">
+            <div class="spinner"></div>
+            <p>설명회 정보를 다시 불러오는 중입니다...</p>
+            <p style="font-size: 12px; color: #999; margin-top: 5px;">잠시만 기다려주세요</p>
+        </div>
+    `;
+
+  loadSeminarSchedule()
+    .then(() => {
+      document.querySelector('.select-guide').style.display = 'block';
+      const defaultInfoBox = document.getElementById('defaultInfoBox');
+      const reserveBtn = document.getElementById('reserveBtn');
+      if (defaultInfoBox) defaultInfoBox.style.display = 'block';
+      if (reserveBtn) reserveBtn.style.display = 'block';
+      displaySeminarSelection();
+    })
+    .catch((error) => {
+      console.error('재시도 실패:', error);
+      const container = document.getElementById('seminarSelectionArea');
+      container.innerHTML = `
+            <div class="error">
+                <p style="font-size: 16px; margin-bottom: 10px;">설명회 정보를 불러올 수 없습니다.</p>
+                <p style="font-size: 14px; color: #666;">네트워크 연결을 확인하고 다시 시도해주세요.</p>
+                <button class="btn btn-primary" onclick="retryLoadSeminars()" style="margin-top: 15px;">다시 시도</button>
+            </div>
+        `;
+    });
+}
 
 // 로딩 표시
 function showLoading(message = '처리중...') {
@@ -70,10 +136,19 @@ function showAlert(message, duration = 3000) {
   }, duration);
 }
 
-// 설명회 정보 로드
+// 설명회 정보 로드 (타임아웃 추가)
 async function loadSeminarSchedule() {
   try {
-    const response = await fetch(`${API_URL}?action=getSeminarSchedule`);
+    // 타임아웃 설정 (10초)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(`${API_URL}?action=getSeminarSchedule`, {
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
     if (!response.ok) throw new Error('네트워크 응답 실패');
 
     const data = await response.json();
@@ -90,6 +165,9 @@ async function loadSeminarSchedule() {
       throw new Error('활성화된 설명회가 없습니다');
     }
   } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('요청 시간이 초과되었습니다');
+    }
     console.error('Error:', error);
     throw error;
   }
