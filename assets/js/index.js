@@ -13,7 +13,7 @@ let isWaitlistReservation = false;
 // 시도 횟수 추적
 const attemptTracker = new Map();
 
-// ===== 캐시 관리 추가 =====
+// ===== 캐시 관리 =====
 const CACHE_KEY = 'seminar_schedule';
 const CACHE_DURATION = 5 * 60 * 1000; // 5분
 
@@ -24,11 +24,16 @@ function getCachedData() {
     if (cached) {
       const { data, timestamp } = JSON.parse(cached);
       if (Date.now() - timestamp < CACHE_DURATION) {
+        console.log('캐시 데이터 유효, 사용함');
         return data;
+      } else {
+        console.log('캐시 데이터 만료됨');
+        localStorage.removeItem(CACHE_KEY);
       }
     }
   } catch (e) {
     console.log('캐시 읽기 실패:', e);
+    localStorage.removeItem(CACHE_KEY);
   }
   return null;
 }
@@ -42,143 +47,283 @@ function setCachedData(data) {
         timestamp: Date.now(),
       })
     );
+    console.log('캐시 저장 완료');
   } catch (e) {
     console.log('캐시 저장 실패:', e);
   }
 }
 
-// ===== 페이지 로드 시 초기화 (최적화) =====
-document.addEventListener('DOMContentLoaded', function () {
+// ===== 페이지 로드 시 초기화 =====
+document.addEventListener('DOMContentLoaded', async function () {
+  console.log('페이지 로드 시작');
+
+  // 초기 상태 설정
   isPreviousInfoLoaded = false;
   previousInfo = null;
   isWaitlistReservation = false;
+
+  // UI 초기화
   const noticeElement = document.getElementById('infoLoadedNotice');
   if (noticeElement) {
     noticeElement.classList.add('hidden');
     noticeElement.style.display = 'none';
   }
 
-  // 초기 로딩 표시 유지
   const defaultInfoBox = document.getElementById('defaultInfoBox');
   const reserveBtn = document.getElementById('reserveBtn');
+  const selectGuide = document.querySelector('.select-guide');
 
-  // 정보 박스와 버튼 숨기기
+  // 초기에는 안내 문구와 버튼 숨기기
+  if (selectGuide) selectGuide.style.display = 'none';
   if (defaultInfoBox) defaultInfoBox.style.display = 'none';
   if (reserveBtn) reserveBtn.style.display = 'none';
 
-  console.log('페이지 로드 - 설명회 정보 로딩 시작');
+  // 로딩 표시
+  const seminarSelectionArea = document.getElementById('seminarSelectionArea');
+  seminarSelectionArea.innerHTML = `
+    <div class="initial-loading">
+      <div class="spinner"></div>
+      <p>설명회 정보를 불러오는 중입니다...</p>
+      <p style="font-size: 12px; color: #999; margin-top: 5px">잠시만 기다려주세요</p>
+    </div>
+  `;
 
-  // ===== 캐시 확인 추가 =====
-  const cachedSchedule = getCachedData();
+  try {
+    // 캐시 확인
+    const cachedSchedule = getCachedData();
 
-  if (cachedSchedule && cachedSchedule.length > 0) {
-    console.log('캐시된 데이터 사용');
-    seminarSchedule = cachedSchedule;
+    if (
+      cachedSchedule &&
+      Array.isArray(cachedSchedule) &&
+      cachedSchedule.length > 0
+    ) {
+      console.log('캐시된 데이터 사용:', cachedSchedule);
+      seminarSchedule = cachedSchedule;
 
-    // UI 즉시 업데이트
-    document.querySelector('.select-guide').style.display = 'block';
-    if (defaultInfoBox) defaultInfoBox.style.display = 'block';
-    if (reserveBtn) reserveBtn.style.display = 'block';
-    displaySeminarSelection();
+      // UI 즉시 업데이트
+      updateUIAfterLoad();
+      displaySeminarSelection();
 
-    // 백그라운드에서 데이터 갱신
-    refreshDataInBackground();
-  } else {
-    // 캐시가 없으면 직접 로드
-    loadSeminarScheduleOptimized()
-      .then(() => {
-        console.log('설명회 정보 로드 완료');
-        updateUIAfterLoad();
-        displaySeminarSelection();
-      })
-      .catch((error) => {
-        console.error('초기 로드 실패:', error);
-        showLoadError();
-      });
+      // 백그라운드에서 데이터 갱신
+      refreshDataInBackground();
+    } else {
+      console.log('캐시 없음, 새로 로드');
+      // 캐시가 없으면 직접 로드
+      await loadSeminarScheduleWithFallback();
+    }
+  } catch (error) {
+    console.error('초기화 중 오류:', error);
+    showLoadError();
   }
 });
 
-// ===== 새로운 최적화된 로드 함수 =====
-async function loadSeminarScheduleOptimized() {
+// ===== 메인 로드 함수 (폴백 포함) =====
+async function loadSeminarScheduleWithFallback() {
   try {
-    // 더 짧은 타임아웃 설정 (5초)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    // 재시도 로직 포함
-    const fetchWithRetry = async (retries = 2) => {
-      for (let i = 0; i < retries; i++) {
-        try {
-          const response = await fetch(`${API_URL}?action=getSeminarSchedule`, {
-            signal: controller.signal,
-          });
-
-          if (response.ok) {
-            clearTimeout(timeoutId);
-            return response;
-          }
-        } catch (error) {
-          if (i === retries - 1) throw error;
-          // 재시도 전 짧은 대기
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-      }
-    };
-
-    const response = await fetchWithRetry();
-    const data = await response.json();
-
-    if (data.success && data.schedule && data.schedule.length > 0) {
-      // 활성화되고 아직 진행되지 않은 설명회만 필터링
-      seminarSchedule = data.schedule.filter(
-        (s) => s.status === 'active' && !s.isPast
-      );
-
-      // 캐시에 저장
-      setCachedData(seminarSchedule);
-
-      console.log('활성 설명회:', seminarSchedule);
-      return true;
+    const success = await loadSeminarScheduleOptimized();
+    if (success) {
+      console.log('설명회 정보 로드 성공');
+      updateUIAfterLoad();
+      displaySeminarSelection();
     } else {
-      throw new Error('활성화된 설명회가 없습니다');
+      throw new Error('설명회 로드 실패');
     }
   } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error('요청 시간이 초과되었습니다');
+    console.error('로드 실패:', error);
+
+    // 폴백: 기본 설명회 정보 사용
+    const fallbackSchedule = getFallbackSchedule();
+    if (fallbackSchedule.length > 0) {
+      console.log('폴백 데이터 사용');
+      seminarSchedule = fallbackSchedule;
+      updateUIAfterLoad();
+      displaySeminarSelection();
+
+      // 백그라운드에서 재시도
+      setTimeout(() => refreshDataInBackground(), 2000);
+    } else {
+      showLoadError();
     }
-    console.error('Error:', error);
-    throw error;
   }
 }
 
-// ===== UI 업데이트 함수 추가 =====
-function updateUIAfterLoad() {
-  document.querySelector('.select-guide').style.display = 'block';
-  const defaultInfoBox = document.getElementById('defaultInfoBox');
-  const reserveBtn = document.getElementById('reserveBtn');
-  if (defaultInfoBox) defaultInfoBox.style.display = 'block';
-  if (reserveBtn) reserveBtn.style.display = 'block';
+// ===== 폴백 데이터 =====
+function getFallbackSchedule() {
+  // 기본 설명회 정보 (긴급 시 사용)
+  const now = new Date();
+  const fallback = [
+    {
+      id: 'S1755586429207',
+      date: '2025-08-26',
+      time: '10:30',
+      maxCapacity: 100,
+      displayCapacity: 100,
+      title: '아이스터디 VIP 학부모 설명회 - 대치',
+      location: '넥스트닥 (대치동 912-31, 대치스터디타워 5층)',
+      duration: '90분',
+      reserved: 0,
+      available: 100,
+      isFull: false,
+      isPast: false,
+      status: 'active',
+    },
+    {
+      id: 'S1755586585660',
+      date: '2025-08-27',
+      time: '10:30',
+      maxCapacity: 60,
+      displayCapacity: 60,
+      title: '아이스터디 VIP 학부모 설명회 - 송도',
+      location: '바른생각학원 (송도 1공구 노브랜드 건물 5층)',
+      duration: '90분',
+      reserved: 0,
+      available: 60,
+      isFull: false,
+      isPast: false,
+      status: 'active',
+    },
+    {
+      id: 'S1755586850329',
+      date: '2025-09-02',
+      time: '10:30',
+      maxCapacity: 120,
+      displayCapacity: 120,
+      title: '아이스터디 VIP 학부모 설명회 - 분당',
+      location: '수학의 아침 수내캠퍼스',
+      duration: '90분',
+      reserved: 0,
+      available: 120,
+      isFull: false,
+      isPast: false,
+      status: 'active',
+    },
+  ];
+
+  // 지난 날짜 필터링
+  return fallback.filter((s) => {
+    const seminarDate = new Date(s.date + 'T' + s.time);
+    return seminarDate > now;
+  });
 }
 
-// ===== 백그라운드 데이터 갱신 추가 =====
-async function refreshDataInBackground() {
+// ===== 최적화된 로드 함수 =====
+async function loadSeminarScheduleOptimized() {
+  console.log('API 호출 시작');
+
   try {
-    const response = await fetch(`${API_URL}?action=getSeminarSchedule`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 타임아웃 8초로 증가
+
+    const response = await fetch(`${API_URL}?action=getSeminarSchedule`, {
+      signal: controller.signal,
+      method: 'GET',
+      cache: 'no-cache',
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('API 응답:', data);
+
+    if (data.success && data.schedule && Array.isArray(data.schedule)) {
+      // 활성화되고 아직 진행되지 않은 설명회만 필터링
+      const activeSchedule = data.schedule.filter((s) => {
+        // status가 없으면 active로 간주
+        const isActive = !s.status || s.status === 'active';
+        const isNotPast = !s.isPast;
+        return isActive && isNotPast;
+      });
+
+      console.log('활성 설명회:', activeSchedule);
+
+      if (activeSchedule.length > 0) {
+        seminarSchedule = activeSchedule;
+        setCachedData(activeSchedule);
+        return true;
+      } else {
+        console.log('활성화된 설명회가 없음');
+        // 빈 배열도 유효한 상태로 처리
+        seminarSchedule = [];
+        return true;
+      }
+    } else {
+      console.error('잘못된 API 응답 형식:', data);
+      return false;
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      console.error('요청 시간 초과');
+    } else {
+      console.error('API 호출 오류:', error);
+    }
+    return false;
+  }
+}
+
+// ===== UI 업데이트 =====
+function updateUIAfterLoad() {
+  console.log('UI 업데이트 시작');
+
+  const selectGuide = document.querySelector('.select-guide');
+  const defaultInfoBox = document.getElementById('defaultInfoBox');
+  const reserveBtn = document.getElementById('reserveBtn');
+
+  if (selectGuide) {
+    selectGuide.style.display = 'block';
+    selectGuide.textContent =
+      seminarSchedule.length > 0
+        ? '참석하실 설명회를 선택해주세요'
+        : '현재 예약 가능한 설명회가 없습니다';
+  }
+
+  if (defaultInfoBox) {
+    defaultInfoBox.style.display = 'block';
+    if (seminarSchedule.length === 0) {
+      defaultInfoBox.innerHTML = `
+        <p style="color: #999;">현재 예약 가능한 설명회가 없습니다.</p>
+        <p style="color: #999; font-size: 14px; margin-top: 10px;">추후 일정을 확인해주세요.</p>
+      `;
+    }
+  }
+
+  if (reserveBtn) {
+    reserveBtn.style.display = 'block';
+    if (seminarSchedule.length === 0) {
+      reserveBtn.disabled = true;
+      reserveBtn.textContent = '예약 가능한 설명회가 없습니다';
+    }
+  }
+}
+
+// ===== 백그라운드 데이터 갱신 =====
+async function refreshDataInBackground() {
+  console.log('백그라운드 데이터 갱신 시작');
+
+  try {
+    const response = await fetch(`${API_URL}?action=getSeminarSchedule`, {
+      method: 'GET',
+      cache: 'no-cache',
+    });
+
+    if (!response.ok) return;
+
     const data = await response.json();
 
-    if (data.success && data.schedule) {
+    if (data.success && data.schedule && Array.isArray(data.schedule)) {
       const newSchedule = data.schedule.filter(
-        (s) => s.status === 'active' && !s.isPast
+        (s) => (!s.status || s.status === 'active') && !s.isPast
       );
 
       // 데이터가 변경되었는지 확인
       if (JSON.stringify(newSchedule) !== JSON.stringify(seminarSchedule)) {
+        console.log('데이터 변경 감지, UI 업데이트');
         seminarSchedule = newSchedule;
-        setCachedData(seminarSchedule);
-
-        // UI 부드럽게 업데이트
+        setCachedData(newSchedule);
         displaySeminarSelection();
-        console.log('설명회 정보가 업데이트되었습니다');
       }
     }
   } catch (error) {
@@ -186,16 +331,116 @@ async function refreshDataInBackground() {
   }
 }
 
-// ===== 에러 표시 함수 추가 =====
-function showLoadError() {
+// ===== 설명회 선택 화면 표시 =====
+function displaySeminarSelection() {
+  console.log('설명회 선택 화면 표시, 개수:', seminarSchedule.length);
+
   const container = document.getElementById('seminarSelectionArea');
+  if (!container) {
+    console.error('seminarSelectionArea를 찾을 수 없음');
+    return;
+  }
+
+  // 설명회가 없는 경우
+  if (!seminarSchedule || seminarSchedule.length === 0) {
+    container.innerHTML = `
+      <div class="error" style="background: #fff3cd; color: #856404; border: 1px solid #ffeaa7;">
+        <p style="font-size: 16px; margin-bottom: 10px;">현재 예약 가능한 설명회가 없습니다.</p>
+        <p style="font-size: 14px;">추후 일정을 확인해주세요.</p>
+      </div>
+    `;
+
+    // 선택 가이드 문구 숨기기
+    const selectGuide = document.querySelector('.select-guide');
+    if (selectGuide) selectGuide.style.display = 'none';
+
+    // 예약 버튼 비활성화
+    const reserveBtn = document.getElementById('reserveBtn');
+    if (reserveBtn) {
+      reserveBtn.disabled = true;
+      reserveBtn.textContent = '예약 가능한 설명회가 없습니다';
+    }
+    return;
+  }
+
+  // 설명회가 1개면 자동 선택
+  if (seminarSchedule.length === 1) {
+    console.log('설명회 1개, 자동 선택');
+    selectSeminar(seminarSchedule[0].id);
+
+    // 1개일 때도 표시는 해줌
+    container.innerHTML = `
+      <div class="seminar-selection">
+        <div class="seminar-options">
+          ${createSeminarOption(seminarSchedule[0], true)}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // 여러 개일 때 선택 화면
+  console.log('설명회 여러 개, 선택 화면 표시');
   container.innerHTML = `
-    <div class="error">
-      <p style="font-size: 16px; margin-bottom: 10px;">설명회 정보를 불러올 수 없습니다.</p>
-      <p style="font-size: 14px; color: #666;">잠시 후 다시 시도해주세요.</p>
-      <button class="btn btn-primary" onclick="retryLoadSeminars()" style="margin-top: 15px;">다시 시도</button>
+    <div class="seminar-selection">
+      <div class="seminar-options">
+        ${seminarSchedule
+          .map((seminar) => createSeminarOption(seminar, false))
+          .join('')}
+      </div>
     </div>
   `;
+}
+
+// ===== 설명회 옵션 HTML 생성 =====
+function createSeminarOption(seminar, autoSelected) {
+  const isFull = seminar.reserved >= seminar.maxCapacity;
+  const available =
+    seminar.available || seminar.displayCapacity - seminar.reserved;
+  const availablePercent =
+    (available / (seminar.displayCapacity || seminar.maxCapacity)) * 100;
+  const isNearFull = availablePercent < 30 && !isFull;
+
+  let availabilityBadge = '';
+  if (isFull) {
+    availabilityBadge = '<span class="availability-badge full">마감</span>';
+  } else if (isNearFull) {
+    availabilityBadge =
+      '<span class="availability-badge limited">마감임박</span>';
+  } else {
+    availabilityBadge =
+      '<span class="availability-badge available">예약가능</span>';
+  }
+
+  return `
+    <div class="seminar-option ${
+      autoSelected ? 'selected' : ''
+    }" onclick="selectSeminar('${seminar.id}')">
+      ${availabilityBadge}
+      <h4>${seminar.title}</h4>
+      <p>${formatDate(seminar.date)} ${formatTime(seminar.time)}</p>
+      <p>${seminar.location}</p>
+      <div class="seats-info">
+        잔여석: ${available}/${seminar.displayCapacity || seminar.maxCapacity}석
+      </div>
+    </div>
+  `;
+}
+
+// ===== 에러 표시 =====
+function showLoadError() {
+  console.log('에러 화면 표시');
+
+  const container = document.getElementById('seminarSelectionArea');
+  if (container) {
+    container.innerHTML = `
+      <div class="error">
+        <p style="font-size: 16px; margin-bottom: 10px;">설명회 정보를 불러올 수 없습니다.</p>
+        <p style="font-size: 14px; color: #666;">잠시 후 다시 시도해주세요.</p>
+        <button class="btn btn-primary" onclick="retryLoadSeminars()" style="margin-top: 15px;">다시 시도</button>
+      </div>
+    `;
+  }
 
   const defaultInfoBox = document.getElementById('defaultInfoBox');
   const reserveBtn = document.getElementById('reserveBtn');
@@ -205,6 +450,7 @@ function showLoadError() {
     defaultInfoBox.innerHTML =
       '<p style="color: #999;">설명회 정보를 불러올 수 없습니다.</p>';
   }
+
   if (reserveBtn) {
     reserveBtn.style.display = 'block';
     reserveBtn.disabled = true;
@@ -212,45 +458,28 @@ function showLoadError() {
   }
 }
 
-// ===== 재시도 함수 수정 =====
-function retryLoadSeminars() {
+// ===== 재시도 =====
+async function retryLoadSeminars() {
+  console.log('재시도 시작');
+
   // 캐시 삭제
   localStorage.removeItem(CACHE_KEY);
 
   const container = document.getElementById('seminarSelectionArea');
-  container.innerHTML = `
-    <div class="initial-loading">
-      <div class="spinner"></div>
-      <p>설명회 정보를 다시 불러오는 중입니다...</p>
-      <p style="font-size: 12px; color: #999; margin-top: 5px;">최대 5초 소요</p>
-    </div>
-  `;
+  if (container) {
+    container.innerHTML = `
+      <div class="initial-loading">
+        <div class="spinner"></div>
+        <p>설명회 정보를 다시 불러오는 중입니다...</p>
+        <p style="font-size: 12px; color: #999; margin-top: 5px;">최대 8초 소요</p>
+      </div>
+    `;
+  }
 
-  loadSeminarScheduleOptimized()
-    .then(() => {
-      document.querySelector('.select-guide').style.display = 'block';
-      const defaultInfoBox = document.getElementById('defaultInfoBox');
-      const reserveBtn = document.getElementById('reserveBtn');
-      if (defaultInfoBox) defaultInfoBox.style.display = 'block';
-      if (reserveBtn) reserveBtn.style.display = 'block';
-      displaySeminarSelection();
-    })
-    .catch((error) => {
-      console.error('재시도 실패:', error);
-      showLoadError();
-    });
+  await loadSeminarScheduleWithFallback();
 }
 
-// ===== 기존 loadSeminarSchedule 함수는 삭제하고 위의 loadSeminarScheduleOptimized로 대체 =====
-
-// ===== Service Worker 등록 추가 =====
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {
-    console.log('Service Worker 등록 실패 (무시)');
-  });
-}
-
-// ===== 이하 기존 함수들은 그대로 유지 =====
+// ===== 이하 기존 함수들 그대로 유지 =====
 
 // 로딩 표시
 function showLoading(message = '처리중...') {
@@ -258,11 +487,11 @@ function showLoading(message = '처리중...') {
   overlay.id = 'loadingOverlay';
   overlay.className = 'loading-overlay';
   overlay.innerHTML = `
-        <div class="loading-content">
-            <div class="spinner"></div>
-            <div>${message}</div>
-        </div>
-    `;
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <div>${message}</div>
+    </div>
+  `;
   document.body.appendChild(overlay);
 }
 
@@ -286,70 +515,6 @@ function showAlert(message, duration = 3000) {
   }, duration);
 }
 
-// 설명회 선택 화면 표시
-function displaySeminarSelection() {
-  const container = document.getElementById('seminarSelectionArea');
-
-  if (seminarSchedule.length === 0) {
-    container.innerHTML = `
-            <div class="error">
-                현재 예약 가능한 설명회가 없습니다.<br>
-                추후 일정을 확인해주세요.
-            </div>
-        `;
-    // 선택 가이드 문구 숨기기
-    document.querySelector('.select-guide').style.display = 'none';
-    return;
-  }
-
-  if (seminarSchedule.length === 1) {
-    // 설명회가 1개면 자동 선택
-    selectSeminar(seminarSchedule[0].id);
-    return;
-  }
-
-  // 여러 개일 때 선택 화면 (h3 제목 제거)
-  container.innerHTML = `
-        <div class="seminar-selection">
-            <div class="seminar-options">
-                ${seminarSchedule
-                  .map((seminar) => {
-                    const isFull = seminar.reserved >= seminar.maxCapacity;
-                    const availablePercent =
-                      (seminar.available / seminar.displayCapacity) * 100;
-                    const isNearFull = availablePercent < 30 && !isFull;
-
-                    let availabilityBadge = '';
-                    if (isFull) {
-                      availabilityBadge =
-                        '<span class="availability-badge full">마감</span>';
-                    } else if (isNearFull) {
-                      availabilityBadge =
-                        '<span class="availability-badge limited">마감임박</span>';
-                    } else {
-                      availabilityBadge =
-                        '<span class="availability-badge available">예약가능</span>';
-                    }
-
-                    return `
-                        <div class="seminar-option" onclick="selectSeminar('${
-                          seminar.id
-                        }')">
-                            ${availabilityBadge}
-                            <h4>${seminar.title}</h4>
-                            <p>${formatDate(seminar.date)} ${formatTime(
-                      seminar.time
-                    )}</p>
-                            <p>${seminar.location}</p>
-                        </div>
-                    `;
-                  })
-                  .join('')}
-            </div>
-        </div>
-    `;
-}
-
 // 설명회 선택 시
 function selectSeminar(seminarId) {
   selectedSeminar = seminarSchedule.find((s) => s.id === seminarId);
@@ -358,6 +523,8 @@ function selectSeminar(seminarId) {
     showAlert('잘못된 설명회 선택입니다.');
     return;
   }
+
+  console.log('설명회 선택됨:', selectedSeminar);
 
   // 선택된 설명회 표시 업데이트
   document.querySelectorAll('.seminar-option').forEach((option) => {
@@ -369,56 +536,81 @@ function selectSeminar(seminarId) {
   }
 
   // 선택 가이드 문구를 선택된 설명회 정보로 변경
-  document.querySelector('.select-guide').innerHTML = `
-        <strong style="color: #1a73e8;">${selectedSeminar.title}</strong> 선택됨
+  const selectGuide = document.querySelector('.select-guide');
+  if (selectGuide) {
+    selectGuide.innerHTML = `
+      <strong style="color: #1a73e8;">${selectedSeminar.title}</strong> 선택됨
     `;
+  }
 
   // 설명회 정보 업데이트
   updateSelectedSeminarInfo();
 
   // 예약 버튼 활성화
   const reserveBtn = document.getElementById('reserveBtn');
-  reserveBtn.disabled = false;
-  reserveBtn.textContent = selectedSeminar.isFull
-    ? '대기예약 신청하기'
-    : '설명회 예약하기';
-  reserveBtn.className = selectedSeminar.isFull
-    ? 'btn btn-waitlist'
-    : 'btn btn-primary';
+  if (reserveBtn) {
+    reserveBtn.disabled = false;
+    reserveBtn.textContent = selectedSeminar.isFull
+      ? '대기예약 신청하기'
+      : '설명회 예약하기';
+    reserveBtn.className = selectedSeminar.isFull
+      ? 'btn btn-waitlist'
+      : 'btn btn-primary';
+  }
 }
 
-// 선택된 설명회 정보 업데이트 (잔여석 제거)
+// 선택된 설명회 정보 업데이트
 function updateSelectedSeminarInfo() {
   const infoBox = document.getElementById('defaultInfoBox');
 
-  if (selectedSeminar) {
+  if (selectedSeminar && infoBox) {
+    const available =
+      selectedSeminar.available ||
+      selectedSeminar.displayCapacity - selectedSeminar.reserved;
+
     infoBox.innerHTML = `
-            <p><strong>${selectedSeminar.title}</strong></p>
-            <ul style="list-style-type: disc; padding-left: 20px;">
-                <li>일시: ${formatDate(selectedSeminar.date)} ${formatTime(
+      <p><strong>${selectedSeminar.title}</strong></p>
+      <ul style="list-style-type: disc; padding-left: 20px;">
+        <li>일시: ${formatDate(selectedSeminar.date)} ${formatTime(
       selectedSeminar.time
     )}</li>
-                <li>장소: ${selectedSeminar.location}</li>
-                <li>대상: 초/중등 학부모님</li>
-            </ul>
-            <br>
-            <p style="font-size: 13px; color: #666;">※ 설명회 참석 후 개별 컨설팅 예약이 가능합니다.</p>
-        `;
+        <li>장소: ${selectedSeminar.location}</li>
+        <li>대상: 초/중등 학부모님</li>
+        <li>잔여석: ${available}/${
+      selectedSeminar.displayCapacity || selectedSeminar.maxCapacity
+    }석</li>
+      </ul>
+      <br>
+      <p style="font-size: 13px; color: #666;">※ 설명회 참석 후 개별 컨설팅 예약이 가능합니다.</p>
+    `;
 
     // 마감 안내 표시
-    if (selectedSeminar.isFull) {
-      document.getElementById('fullNotice').classList.remove('hidden');
-    } else {
-      document.getElementById('fullNotice').classList.add('hidden');
+    const fullNotice = document.getElementById('fullNotice');
+    if (fullNotice) {
+      if (selectedSeminar.isFull) {
+        fullNotice.classList.remove('hidden');
+      } else {
+        fullNotice.classList.add('hidden');
+      }
     }
   }
 }
 
-// ===== 이하 모든 기존 함수들 그대로 유지 =====
+// Service Worker 등록
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((registration) => console.log('SW registered:', registration))
+      .catch((error) => console.log('SW registration failed:', error));
+  });
+}
+
+// 나머지 모든 기존 함수들 그대로 유지
 // proceedToReservation, showScreen, checkAttemptLimit, showSecurityModal,
 // checkPreviousInfo, goBackFromInfo, validatePhone, handlePhoneSubmit,
 // validateForm, handleInfoSubmit, handleCheckSubmit, cancelReservation,
-// formatDate, formatTime 등 모든 함수 그대로 유지
+// formatDate, formatTime 등...
 
 // 예약 진행
 function proceedToReservation() {
@@ -542,24 +734,24 @@ function checkAttemptLimit(phone) {
 function showSecurityModal() {
   return new Promise((resolve, reject) => {
     const modalHtml = `
-            <div class="modal-overlay" id="securityModalOverlay">
-                <div class="security-modal">
-                    <h3>개인정보 보호 확인</h3>
-                    <p style="margin-bottom: 20px; color: #666;">
-                        개인정보 보호를 위해 학생 이름의 첫 글자를 입력해주세요.
-                    </p>
-                    <input type="text" 
-                           id="studentInitialInput" 
-                           maxlength="1" 
-                           placeholder="예: 홍길동 → 홍"
-                           autocomplete="off">
-                    <div class="btn-group">
-                        <button class="btn btn-primary" onclick="confirmSecurityModal()">확인</button>
-                        <button class="btn btn-secondary" onclick="cancelSecurityModal()">취소</button>
-                    </div>
-                </div>
-            </div>
-        `;
+      <div class="modal-overlay" id="securityModalOverlay">
+        <div class="security-modal">
+          <h3>개인정보 보호 확인</h3>
+          <p style="margin-bottom: 20px; color: #666;">
+            개인정보 보호를 위해 학생 이름의 첫 글자를 입력해주세요.
+          </p>
+          <input type="text" 
+                 id="studentInitialInput" 
+                 maxlength="1" 
+                 placeholder="예: 홍길동 → 홍"
+                 autocomplete="off">
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="confirmSecurityModal()">확인</button>
+            <button class="btn btn-secondary" onclick="cancelSecurityModal()">취소</button>
+          </div>
+        </div>
+      </div>
+    `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
@@ -591,7 +783,7 @@ function showSecurityModal() {
   });
 }
 
-// 이전 정보 확인 및 불러오기 (보안 강화 버전)
+// 이전 정보 확인 및 불러오기
 async function checkPreviousInfo() {
   const phone = document.getElementById('initialPhone').value.replace(/-/g, '');
 
@@ -634,12 +826,11 @@ async function checkPreviousInfo() {
       showScreen('info');
 
       setTimeout(() => {
-        // 최소 정보만 자동 입력 (학교, 학년)
+        // 최소 정보만 자동 입력
         document.getElementById('school').value = previousInfo.school || '';
         document.getElementById('grade').value = previousInfo.grade || '';
 
         // 민감 정보는 힌트만 제공
-        const nameHint = document.getElementById('studentNameHint');
         if (previousInfo.studentName && previousInfo.studentName.length > 0) {
           const maskedName =
             previousInfo.studentName.substring(0, 1) +
@@ -669,7 +860,6 @@ async function checkPreviousInfo() {
     hideLoading();
 
     if (error === 'cancelled') {
-      // 사용자가 취소한 경우
       return;
     }
 
@@ -831,7 +1021,7 @@ async function handleInfoSubmit(event) {
   submitBtn.textContent = '처리중...';
   isSubmitting = true;
 
-  // 대기예약 여부 결정 - selectedSeminar.isFull로만 판단
+  // 대기예약 여부 결정
   const isWaitlist = selectedSeminar.isFull;
 
   showLoading(isWaitlist ? '대기예약 처리 중...' : '예약 처리 중...');
@@ -849,7 +1039,7 @@ async function handleInfoSubmit(event) {
       mathLevel: document.getElementById('mathLevel').value.trim(),
       password: document.getElementById('password').value,
       privacyConsent: document.getElementById('privacyConsent').checked,
-      isWaitlist: isWaitlist, // 대기예약 여부 추가
+      isWaitlist: isWaitlist,
     };
 
     const response = await fetch(API_URL, {
@@ -865,7 +1055,7 @@ async function handleInfoSubmit(event) {
     hideLoading();
 
     if (result.success) {
-      // ===== 캐시 무효화 추가 =====
+      // 캐시 무효화
       localStorage.removeItem(CACHE_KEY);
 
       if (result.isWaitlist) {
@@ -875,32 +1065,24 @@ async function handleInfoSubmit(event) {
         document.getElementById('completeSubtitle').textContent =
           '취소자 발생 시 순번대로 연락드리겠습니다.';
         document.getElementById('completionInfo').innerHTML = `
-                    <p><strong>예약번호:</strong> ${result.reservationId}</p>
-                    <p><strong>대기순번:</strong> ${
-                      result.waitlistNumber || '-'
-                    }번째</p>
-                    <p><strong>설명회:</strong> ${result.seminarInfo.title}</p>
-                    <p><strong>날짜:</strong> ${formatDate(
-                      result.seminarInfo.date
-                    )}</p>
-                    <p><strong>시간:</strong> ${formatTime(
-                      result.seminarInfo.time
-                    )}</p>
-                    <p><strong>장소:</strong> ${result.seminarInfo.location}</p>
-                    <p><strong>학생명:</strong> ${
-                      reservationData.studentName
-                    }</p>
-                    <p style="color: #c2185b; margin-top: 10px;"><strong>※ 대기예약입니다</strong></p>
-                `;
+          <p><strong>예약번호:</strong> ${result.reservationId}</p>
+          <p><strong>대기순번:</strong> ${result.waitlistNumber || '-'}번째</p>
+          <p><strong>설명회:</strong> ${result.seminarInfo.title}</p>
+          <p><strong>날짜:</strong> ${formatDate(result.seminarInfo.date)}</p>
+          <p><strong>시간:</strong> ${formatTime(result.seminarInfo.time)}</p>
+          <p><strong>장소:</strong> ${result.seminarInfo.location}</p>
+          <p><strong>학생명:</strong> ${reservationData.studentName}</p>
+          <p style="color: #c2185b; margin-top: 10px;"><strong>※ 대기예약입니다</strong></p>
+        `;
         document.getElementById('completeInfoBox').innerHTML = `
-                    <p><strong>대기예약 안내사항</strong></p>
-                    <ul>
-                        <li>취소자 발생 시 대기 순번대로 개별 연락드립니다.</li>
-                        <li>연락을 받지 못하실 경우 다음 순번으로 넘어갑니다.</li>
-                        <li>대기예약도 언제든 취소 가능합니다.</li>
-                        <li>정규 예약으로 전환 시 별도 안내드립니다.</li>
-                    </ul>
-                `;
+          <p><strong>대기예약 안내사항</strong></p>
+          <ul>
+            <li>취소자 발생 시 대기 순번대로 개별 연락드립니다.</li>
+            <li>연락을 받지 못하실 경우 다음 순번으로 넘어갑니다.</li>
+            <li>대기예약도 언제든 취소 가능합니다.</li>
+            <li>정규 예약으로 전환 시 별도 안내드립니다.</li>
+          </ul>
+        `;
       } else {
         // 일반 예약 완료 화면
         document.getElementById('completeTitle').textContent =
@@ -908,31 +1090,25 @@ async function handleInfoSubmit(event) {
         document.getElementById('completeSubtitle').textContent =
           '설명회에서 뵙겠습니다.';
         document.getElementById('completionInfo').innerHTML = `
-                    <p><strong>예약번호:</strong> ${result.reservationId}</p>
-                    <p><strong>설명회:</strong> ${result.seminarInfo.title}</p>
-                    <p><strong>날짜:</strong> ${formatDate(
-                      result.seminarInfo.date
-                    )}</p>
-                    <p><strong>시간:</strong> ${formatTime(
-                      result.seminarInfo.time
-                    )}</p>
-                    <p><strong>소요시간:</strong> ${
-                      result.seminarInfo.duration || '90분'
-                    }</p>
-                    <p><strong>장소:</strong> ${result.seminarInfo.location}</p>
-                    <p><strong>학생명:</strong> ${
-                      reservationData.studentName
-                    }</p>
-                `;
+          <p><strong>예약번호:</strong> ${result.reservationId}</p>
+          <p><strong>설명회:</strong> ${result.seminarInfo.title}</p>
+          <p><strong>날짜:</strong> ${formatDate(result.seminarInfo.date)}</p>
+          <p><strong>시간:</strong> ${formatTime(result.seminarInfo.time)}</p>
+          <p><strong>소요시간:</strong> ${
+            result.seminarInfo.duration || '90분'
+          }</p>
+          <p><strong>장소:</strong> ${result.seminarInfo.location}</p>
+          <p><strong>학생명:</strong> ${reservationData.studentName}</p>
+        `;
         document.getElementById('completeInfoBox').innerHTML = `
-                    <p><strong>안내사항</strong></p>
-                    <ul>
-                        <li>설명회 시작 10분 전까지 도착해주세요.</li>
-                        <li>주차공간이 협소하니 대중교통 이용을 권장합니다.</li>
-                        <li>설명회 참석 후 개별 컨설팅 예약이 가능합니다.</li>
-                        <li>설명회는 90분간 진행됩니다.</li>
-                    </ul>
-                `;
+          <p><strong>안내사항</strong></p>
+          <ul>
+            <li>설명회 시작 10분 전까지 도착해주세요.</li>
+            <li>주차공간이 협소하니 대중교통 이용을 권장합니다.</li>
+            <li>설명회 참석 후 개별 컨설팅 예약이 가능합니다.</li>
+            <li>설명회는 90분간 진행됩니다.</li>
+          </ul>
+        `;
       }
 
       showScreen('complete');
@@ -1008,40 +1184,31 @@ async function handleCheckSubmit(event) {
 
       let reservationTypeText = '';
       if (data.reservation.status === '대기') {
-        // 대기번호 파싱 (예: "대기 3번")
         const waitlistMatch = data.reservation.notes.match(/대기\s*(\d+)번/);
         const waitlistNumber = waitlistMatch ? waitlistMatch[1] : '-';
         reservationTypeText = `<p style="color: #c2185b;"><strong>예약 유형:</strong> 대기예약 (${waitlistNumber}번째)</p>`;
       }
 
       document.getElementById('reservationInfo').innerHTML = `
-                <p><strong>예약번호:</strong> ${
-                  data.reservation.reservationId
-                }</p>
-                ${reservationTypeText}
-                <p><strong>설명회:</strong> ${
-                  data.reservation.seminarInfo.title
-                }</p>
-                <p><strong>날짜:</strong> ${formatDate(
-                  data.reservation.seminarInfo.date
-                )}</p>
-                <p><strong>시간:</strong> ${formatTime(
-                  data.reservation.seminarInfo.time
-                )}</p>
-                <p><strong>소요시간:</strong> ${
-                  data.reservation.seminarInfo.duration || '90분'
-                }</p>
-                <p><strong>장소:</strong> ${
-                  data.reservation.seminarInfo.location
-                }</p>
-                <p><strong>학생명:</strong> ${data.reservation.studentName}</p>
-                <p><strong>연락처:</strong> ${data.reservation.parentPhone}</p>
-                <p><strong>학교:</strong> ${data.reservation.school}</p>
-                <p><strong>학년:</strong> ${data.reservation.grade}</p>
-                <p><strong>수학 선행정도:</strong> ${
-                  data.reservation.mathLevel
-                }</p>
-            `;
+        <p><strong>예약번호:</strong> ${data.reservation.reservationId}</p>
+        ${reservationTypeText}
+        <p><strong>설명회:</strong> ${data.reservation.seminarInfo.title}</p>
+        <p><strong>날짜:</strong> ${formatDate(
+          data.reservation.seminarInfo.date
+        )}</p>
+        <p><strong>시간:</strong> ${formatTime(
+          data.reservation.seminarInfo.time
+        )}</p>
+        <p><strong>소요시간:</strong> ${
+          data.reservation.seminarInfo.duration || '90분'
+        }</p>
+        <p><strong>장소:</strong> ${data.reservation.seminarInfo.location}</p>
+        <p><strong>학생명:</strong> ${data.reservation.studentName}</p>
+        <p><strong>연락처:</strong> ${data.reservation.parentPhone}</p>
+        <p><strong>학교:</strong> ${data.reservation.school}</p>
+        <p><strong>학년:</strong> ${data.reservation.grade}</p>
+        <p><strong>수학 선행정도:</strong> ${data.reservation.mathLevel}</p>
+      `;
       showScreen('result');
     } else {
       showAlert(
@@ -1090,7 +1257,7 @@ async function cancelReservation() {
     hideLoading();
 
     if (result.success) {
-      // ===== 캐시 무효화 추가 =====
+      // 캐시 무효화
       localStorage.removeItem(CACHE_KEY);
 
       showAlert('예약이 취소되었습니다.');
