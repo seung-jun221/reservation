@@ -1,6 +1,11 @@
-// ⭐ API URL - 백엔드 배포 후 여기에 URL 입력
-const API_URL =
-  'https://script.google.com/macros/s/AKfycbx-ktPhpncbuQ3ny78UfN_mgZPq6JAbA8CcLe7-fYQ6A9edGgVgQX19NrSt6btnPv--xA/exec';
+// ⭐ Supabase 설정
+const SUPABASE_URL = 'https://xooglumwuzctbcjtcvnd.supabase.co';
+const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb2dsdW13dXpjdGJjanRjdm5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1OTk5OTgsImV4cCI6MjA3MTE3NTk5OH0.Uza-Z3CzwQgkYKJmKdwTNCAYgaxeKFs__2udUSAGpJg';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// 기존 API_URL은 주석 처리
+// const API_URL = 'https://script.google.com/macros/s/AKfycbx-ktPhpncbuQ3ny78UfN_mgZPq6JAbA8CcLe7-fYQ6A9edGgVgQX19NrSt6btnPv--xA/exec';
 
 let seminarSchedule = [];
 let selectedSeminar = null;
