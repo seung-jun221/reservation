@@ -62,11 +62,56 @@ async function loadData() {
     seminarSchedule = seminars || [];
     console.log('설명회 로드:', seminarSchedule);
 
-    // 2. 예약 정보 로드
+    // 2. 예약 정보 로드 - created_at을 registered_at으로 변경
     const { data: reservations, error: reservationError } = await supabase
       .from('reservations')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('registered_at', { ascending: false });
+
+    if (reservationError) throw reservationError;
+
+    allReservations = reservations || [];
+    console.log('예약 로드:', allReservations);
+
+    // 3. UI 업데이트
+    updateSeminarFilter();
+    updateStats();
+    applyFilters();
+    updateLastUpdate();
+    updateConnectionStatus('connected');
+  } catch (error) {
+    console.error('데이터 로드 실패:', error);
+    showToast('데이터를 불러올 수 없습니다.', 'error');
+    updateConnectionStatus('offline');
+  } finally {
+    isLoading = false;
+    showLoading(false);
+  }
+}
+async function loadData() {
+  if (isLoading) return;
+
+  isLoading = true;
+  showLoading(true);
+  updateConnectionStatus('connecting');
+
+  try {
+    // 1. 설명회 정보 로드
+    const { data: seminars, error: seminarError } = await supabase
+      .from('seminars')
+      .select('*')
+      .order('date', { ascending: true });
+
+    if (seminarError) throw seminarError;
+
+    seminarSchedule = seminars || [];
+    console.log('설명회 로드:', seminarSchedule);
+
+    // 2. 예약 정보 로드 - created_at을 registered_at으로 변경
+    const { data: reservations, error: reservationError } = await supabase
+      .from('reservations')
+      .select('*')
+      .order('registered_at', { ascending: false });
 
     if (reservationError) throw reservationError;
 
@@ -116,14 +161,18 @@ function handleRealtimeChange(payload) {
     allReservations.unshift(payload.new);
     showToast('새로운 예약이 추가되었습니다.', 'success');
   } else if (payload.eventType === 'UPDATE') {
-    // 예약 업데이트
-    const index = allReservations.findIndex((r) => r.id === payload.new.id);
+    // 예약 업데이트 - id 대신 reservation_id 사용 가능
+    const index = allReservations.findIndex(
+      (r) => r.reservation_id === payload.new.reservation_id
+    );
     if (index !== -1) {
       allReservations[index] = payload.new;
     }
   } else if (payload.eventType === 'DELETE') {
     // 예약 삭제
-    allReservations = allReservations.filter((r) => r.id !== payload.old.id);
+    allReservations = allReservations.filter(
+      (r) => r.reservation_id !== payload.old.reservation_id
+    );
   }
 
   // UI 업데이트
@@ -330,7 +379,7 @@ function updateTable() {
                 )}</td>
                 <td>${reservation.grade}</td>
                 <td>${reservation.math_level || '-'}</td>
-                <td>${formatDateTime(reservation.created_at)}</td>
+                <td>${formatDateTime(reservation.registered_at)}</td>
                 <td>${getStatusBadge(reservation.status)}</td>
                 <td>${reservation.attendance || '-'}</td>
                 <td>${getActionButtons(reservation)}</td>
@@ -597,7 +646,7 @@ function exportToExcel() {
     csv += `"${reservation.school}",`;
     csv += `"${reservation.grade}",`;
     csv += `"${reservation.math_level || '-'}",`;
-    csv += `"${formatDateTime(reservation.created_at)}",`;
+    csv += `"${formatDateTime(reservation.registered_at)}",`;
     csv += `"${reservation.status}",`;
     csv += `"${reservation.attendance || '-'}",`;
     csv += `"${reservation.notes || '-'}"\n`;
