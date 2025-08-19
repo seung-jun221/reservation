@@ -131,18 +131,77 @@ async function loadData() {
 function setupRealtimeSubscription() {
   // 기존 구독 정리
   if (realtimeSubscription) {
+    console.log('기존 구독 해제');
     realtimeSubscription.unsubscribe();
   }
 
+  console.log('새 Realtime 구독 시작...');
+
   // 새 구독 설정
   realtimeSubscription = supabase
-    .channel('reservations-changes')
+    .channel('custom-all-channel') // 채널명 변경
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'reservations' },
-      handleRealtimeChange
+      {
+        event: 'INSERT', // INSERT 먼저 테스트
+        schema: 'public',
+        table: 'reservations',
+      },
+      (payload) => {
+        console.log('🔔 INSERT 감지:', payload);
+        // 새 예약 추가
+        allReservations.unshift(payload.new);
+        updateStats();
+        applyFilters();
+        showToast('새로운 예약이 추가되었습니다!', 'success');
+      }
     )
-    .subscribe();
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'reservations',
+      },
+      (payload) => {
+        console.log('🔔 UPDATE 감지:', payload);
+        const index = allReservations.findIndex(
+          (r) => r.reservation_id === payload.new.reservation_id
+        );
+        if (index !== -1) {
+          allReservations[index] = payload.new;
+          updateStats();
+          applyFilters();
+        }
+      }
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'reservations',
+      },
+      (payload) => {
+        console.log('🔔 DELETE 감지:', payload);
+        allReservations = allReservations.filter(
+          (r) => r.reservation_id !== payload.old.reservation_id
+        );
+        updateStats();
+        applyFilters();
+      }
+    )
+    .subscribe((status, err) => {
+      if (err) {
+        console.error('❌ 구독 에러:', err);
+      } else {
+        console.log('📡 구독 상태:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Realtime 구독 성공!');
+          updateConnectionStatus('connected');
+        }
+      }
+    });
 }
 
 // ===== 실시간 변경 처리 =====
