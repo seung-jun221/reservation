@@ -1,6 +1,6 @@
 // ⭐ API URL - 백엔드 배포 후 여기에 URL 입력
 const API_URL =
-  'https://script.google.com/macros/s/AKfycbx-ktPhpncbuQ3ny78UfN_mgZPq6JAbA8CcLe7-fYQ6A9edGgVgQX19NrSt6btnPv--xA/exec';
+  'hhttps://script.google.com/macros/s/AKfycbx-ktPhpncbuQ3ny78UfN_mgZPq6JAbA8CcLe7-fYQ6A9edGgVgQX19NrSt6btnPv--xA/exec';
 
 let seminarSchedule = [];
 let selectedSeminar = null;
