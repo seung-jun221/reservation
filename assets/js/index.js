@@ -407,6 +407,7 @@ function displaySeminarSelection() {
 }
 
 // ===== 설명회 옵션 HTML 생성 =====
+// 1. createSeminarOption 함수 수정 - 잔여석 정보 제거
 function createSeminarOption(seminar, autoSelected) {
   const isFull = seminar.reserved >= seminar.maxCapacity;
   const available =
@@ -434,11 +435,9 @@ function createSeminarOption(seminar, autoSelected) {
       <h4>${seminar.title}</h4>
       <p>${formatDate(seminar.date)} ${formatTime(seminar.time)}</p>
       <p>${seminar.location}</p>
-      <div class="seats-info">
-        잔여석: ${available}/${seminar.displayCapacity || seminar.maxCapacity}석
-      </div>
     </div>
   `;
+  // 잔여석 정보 제거됨
 }
 
 // ===== 에러 표시 =====
@@ -573,15 +572,11 @@ function selectSeminar(seminarId) {
   }
 }
 
-// 선택된 설명회 정보 업데이트
+// 2. updateSelectedSeminarInfo 함수 수정 - 잔여석 정보 제거
 function updateSelectedSeminarInfo() {
   const infoBox = document.getElementById('defaultInfoBox');
 
   if (selectedSeminar && infoBox) {
-    const available =
-      selectedSeminar.available ||
-      selectedSeminar.displayCapacity - selectedSeminar.reserved;
-
     infoBox.innerHTML = `
       <p><strong>${selectedSeminar.title}</strong></p>
       <ul style="list-style-type: disc; padding-left: 20px;">
@@ -590,13 +585,11 @@ function updateSelectedSeminarInfo() {
     )}</li>
         <li>장소: ${selectedSeminar.location}</li>
         <li>대상: 초/중등 학부모님</li>
-        <li>잔여석: ${available}/${
-      selectedSeminar.displayCapacity || selectedSeminar.maxCapacity
-    }석</li>
       </ul>
       <br>
       <p style="font-size: 13px; color: #666;">※ 설명회 참석 후 개별 컨설팅 예약이 가능합니다.</p>
     `;
+    // 잔여석 정보 제거됨
 
     // 마감 안내 표시
     const fullNotice = document.getElementById('fullNotice');

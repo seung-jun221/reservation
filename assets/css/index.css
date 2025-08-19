@@ -147,15 +147,6 @@ h2 {
   color: #f44336;
 }
 
-/* 잔여석 정보만 하단에 작게 표시 */
-.seats-info {
-  font-size: 13px;
-  color: #999;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #f0f0f0;
-}
-
 .info-box {
   background: #e3f2fd;
   padding: 20px;
