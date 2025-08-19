@@ -597,14 +597,14 @@ function updateSelectedSeminarInfo() {
 }
 
 // Service Worker 등록
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((registration) => console.log('SW registered:', registration))
-      .catch((error) => console.log('SW registration failed:', error));
-  });
-}
+//if ('serviceWorker' in navigator) {
+//  window.addEventListener('load', () => {
+//    navigator.serviceWorker
+//      .register('/sw.js')
+//      .then((registration) => console.log('SW registered:', registration))
+//      .catch((error) => console.log('SW registration failed:', error));
+//  });
+//}
 
 // 나머지 모든 기존 함수들 그대로 유지
 // proceedToReservation, showScreen, checkAttemptLimit, showSecurityModal,
