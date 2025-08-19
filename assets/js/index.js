@@ -207,12 +207,14 @@ function getFallbackSchedule() {
 }
 
 // ===== 최적화된 로드 함수 =====
+// loadSeminarScheduleOptimized 함수를 다음과 같이 수정하세요
+
 async function loadSeminarScheduleOptimized() {
   console.log('API 호출 시작');
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 타임아웃 8초로 증가
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     const response = await fetch(`${API_URL}?action=getSeminarSchedule`, {
       signal: controller.signal,
@@ -229,31 +231,43 @@ async function loadSeminarScheduleOptimized() {
     const data = await response.json();
     console.log('API 응답:', data);
 
-    if (data.success && data.schedule && Array.isArray(data.schedule)) {
-      // 활성화되고 아직 진행되지 않은 설명회만 필터링
-      const activeSchedule = data.schedule.filter((s) => {
-        // status가 없으면 active로 간주
-        const isActive = !s.status || s.status === 'active';
-        const isNotPast = !s.isPast;
-        return isActive && isNotPast;
-      });
+    // API 응답 형식 자동 감지
+    let scheduleData = [];
 
-      console.log('활성 설명회:', activeSchedule);
-
-      if (activeSchedule.length > 0) {
-        seminarSchedule = activeSchedule;
-        setCachedData(activeSchedule);
-        return true;
-      } else {
-        console.log('활성화된 설명회가 없음');
-        // 빈 배열도 유효한 상태로 처리
-        seminarSchedule = [];
-        return true;
+    // Case 1: 정상적인 객체 응답 { success: true, schedule: [...] }
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      if (data.success && data.schedule && Array.isArray(data.schedule)) {
+        scheduleData = data.schedule;
+      } else if (data.schedule && Array.isArray(data.schedule)) {
+        // success 필드가 없어도 schedule이 있으면 처리
+        scheduleData = data.schedule;
       }
-    } else {
-      console.error('잘못된 API 응답 형식:', data);
-      return false;
     }
+    // Case 2: 배열이 직접 반환되는 경우
+    else if (Array.isArray(data)) {
+      scheduleData = data;
+    }
+
+    console.log('추출된 schedule 데이터:', scheduleData);
+
+    // 활성화되고 아직 진행되지 않은 설명회만 필터링
+    const activeSchedule = scheduleData.filter((s) => {
+      // status가 없으면 active로 간주
+      const isActive = !s.status || s.status === 'active';
+      const isNotPast = !s.isPast;
+      return isActive && isNotPast;
+    });
+
+    console.log('활성 설명회:', activeSchedule);
+
+    if (activeSchedule.length >= 0) {
+      // 0개여도 정상 처리
+      seminarSchedule = activeSchedule;
+      setCachedData(activeSchedule);
+      return true;
+    }
+
+    return false;
   } catch (error) {
     if (error.name === 'AbortError') {
       console.error('요청 시간 초과');
