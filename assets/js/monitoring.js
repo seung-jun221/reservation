@@ -33,13 +33,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   // 이벤트 리스너 설정
   setupEventListeners();
-
-  // 자동 새로고침 (30초)
-  setInterval(() => {
-    if (!isLoading) {
-      refreshData();
-    }
-  }, 30000);
 });
 
 // ===== 데이터 로드 =====
