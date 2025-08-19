@@ -13,7 +13,41 @@ let isWaitlistReservation = false;
 // 시도 횟수 추적
 const attemptTracker = new Map();
 
-// 페이지 로드 시 초기화
+// ===== 캐시 관리 추가 =====
+const CACHE_KEY = 'seminar_schedule';
+const CACHE_DURATION = 5 * 60 * 1000; // 5분
+
+// 로컬 스토리지 캐시 함수
+function getCachedData() {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < CACHE_DURATION) {
+        return data;
+      }
+    }
+  } catch (e) {
+    console.log('캐시 읽기 실패:', e);
+  }
+  return null;
+}
+
+function setCachedData(data) {
+  try {
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        data: data,
+        timestamp: Date.now(),
+      })
+    );
+  } catch (e) {
+    console.log('캐시 저장 실패:', e);
+  }
+}
+
+// ===== 페이지 로드 시 초기화 (최적화) =====
 document.addEventListener('DOMContentLoaded', function () {
   isPreviousInfoLoaded = false;
   previousInfo = null;
@@ -34,53 +68,165 @@ document.addEventListener('DOMContentLoaded', function () {
 
   console.log('페이지 로드 - 설명회 정보 로딩 시작');
 
-  // 초기 로드 시 설명회 정보 확인
-  loadSeminarSchedule()
-    .then(() => {
-      console.log('설명회 정보 로드 완료');
-      // 선택 가이드 표시
-      document.querySelector('.select-guide').style.display = 'block';
-      // 정보 박스와 버튼 표시
-      if (defaultInfoBox) defaultInfoBox.style.display = 'block';
-      if (reserveBtn) reserveBtn.style.display = 'block';
-      displaySeminarSelection();
-    })
-    .catch((error) => {
-      console.error('초기 로드 실패:', error);
-      const container = document.getElementById('seminarSelectionArea');
-      container.innerHTML = `
-            <div class="error">
-                <p style="font-size: 16px; margin-bottom: 10px;">설명회 정보를 불러올 수 없습니다.</p>
-                <p style="font-size: 14px; color: #666;">잠시 후 다시 시도해주세요.</p>
-                <button class="btn btn-primary" onclick="retryLoadSeminars()" style="margin-top: 15px;">다시 시도</button>
-            </div>
-        `;
-      // 에러 시에도 버튼은 표시 (비활성화 상태)
-      if (defaultInfoBox) {
-        defaultInfoBox.style.display = 'block';
-        defaultInfoBox.innerHTML =
-          '<p style="color: #999;">설명회 정보를 불러올 수 없습니다.</p>';
-      }
-      if (reserveBtn) {
-        reserveBtn.style.display = 'block';
-        reserveBtn.disabled = true;
-        reserveBtn.textContent = '설명회 정보를 불러오는 중...';
-      }
-    });
+  // ===== 캐시 확인 추가 =====
+  const cachedSchedule = getCachedData();
+
+  if (cachedSchedule && cachedSchedule.length > 0) {
+    console.log('캐시된 데이터 사용');
+    seminarSchedule = cachedSchedule;
+
+    // UI 즉시 업데이트
+    document.querySelector('.select-guide').style.display = 'block';
+    if (defaultInfoBox) defaultInfoBox.style.display = 'block';
+    if (reserveBtn) reserveBtn.style.display = 'block';
+    displaySeminarSelection();
+
+    // 백그라운드에서 데이터 갱신
+    refreshDataInBackground();
+  } else {
+    // 캐시가 없으면 직접 로드
+    loadSeminarScheduleOptimized()
+      .then(() => {
+        console.log('설명회 정보 로드 완료');
+        updateUIAfterLoad();
+        displaySeminarSelection();
+      })
+      .catch((error) => {
+        console.error('초기 로드 실패:', error);
+        showLoadError();
+      });
+  }
 });
 
-// 재시도 함수
-function retryLoadSeminars() {
+// ===== 새로운 최적화된 로드 함수 =====
+async function loadSeminarScheduleOptimized() {
+  try {
+    // 더 짧은 타임아웃 설정 (5초)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    // 재시도 로직 포함
+    const fetchWithRetry = async (retries = 2) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const response = await fetch(`${API_URL}?action=getSeminarSchedule`, {
+            signal: controller.signal,
+          });
+
+          if (response.ok) {
+            clearTimeout(timeoutId);
+            return response;
+          }
+        } catch (error) {
+          if (i === retries - 1) throw error;
+          // 재시도 전 짧은 대기
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+    };
+
+    const response = await fetchWithRetry();
+    const data = await response.json();
+
+    if (data.success && data.schedule && data.schedule.length > 0) {
+      // 활성화되고 아직 진행되지 않은 설명회만 필터링
+      seminarSchedule = data.schedule.filter(
+        (s) => s.status === 'active' && !s.isPast
+      );
+
+      // 캐시에 저장
+      setCachedData(seminarSchedule);
+
+      console.log('활성 설명회:', seminarSchedule);
+      return true;
+    } else {
+      throw new Error('활성화된 설명회가 없습니다');
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('요청 시간이 초과되었습니다');
+    }
+    console.error('Error:', error);
+    throw error;
+  }
+}
+
+// ===== UI 업데이트 함수 추가 =====
+function updateUIAfterLoad() {
+  document.querySelector('.select-guide').style.display = 'block';
+  const defaultInfoBox = document.getElementById('defaultInfoBox');
+  const reserveBtn = document.getElementById('reserveBtn');
+  if (defaultInfoBox) defaultInfoBox.style.display = 'block';
+  if (reserveBtn) reserveBtn.style.display = 'block';
+}
+
+// ===== 백그라운드 데이터 갱신 추가 =====
+async function refreshDataInBackground() {
+  try {
+    const response = await fetch(`${API_URL}?action=getSeminarSchedule`);
+    const data = await response.json();
+
+    if (data.success && data.schedule) {
+      const newSchedule = data.schedule.filter(
+        (s) => s.status === 'active' && !s.isPast
+      );
+
+      // 데이터가 변경되었는지 확인
+      if (JSON.stringify(newSchedule) !== JSON.stringify(seminarSchedule)) {
+        seminarSchedule = newSchedule;
+        setCachedData(seminarSchedule);
+
+        // UI 부드럽게 업데이트
+        displaySeminarSelection();
+        console.log('설명회 정보가 업데이트되었습니다');
+      }
+    }
+  } catch (error) {
+    console.log('백그라운드 업데이트 실패 (무시):', error);
+  }
+}
+
+// ===== 에러 표시 함수 추가 =====
+function showLoadError() {
   const container = document.getElementById('seminarSelectionArea');
   container.innerHTML = `
-        <div class="initial-loading">
-            <div class="spinner"></div>
-            <p>설명회 정보를 다시 불러오는 중입니다...</p>
-            <p style="font-size: 12px; color: #999; margin-top: 5px;">잠시만 기다려주세요</p>
-        </div>
-    `;
+    <div class="error">
+      <p style="font-size: 16px; margin-bottom: 10px;">설명회 정보를 불러올 수 없습니다.</p>
+      <p style="font-size: 14px; color: #666;">잠시 후 다시 시도해주세요.</p>
+      <button class="btn btn-primary" onclick="retryLoadSeminars()" style="margin-top: 15px;">다시 시도</button>
+    </div>
+  `;
 
-  loadSeminarSchedule()
+  const defaultInfoBox = document.getElementById('defaultInfoBox');
+  const reserveBtn = document.getElementById('reserveBtn');
+
+  if (defaultInfoBox) {
+    defaultInfoBox.style.display = 'block';
+    defaultInfoBox.innerHTML =
+      '<p style="color: #999;">설명회 정보를 불러올 수 없습니다.</p>';
+  }
+  if (reserveBtn) {
+    reserveBtn.style.display = 'block';
+    reserveBtn.disabled = true;
+    reserveBtn.textContent = '설명회 정보를 불러오는 중...';
+  }
+}
+
+// ===== 재시도 함수 수정 =====
+function retryLoadSeminars() {
+  // 캐시 삭제
+  localStorage.removeItem(CACHE_KEY);
+
+  const container = document.getElementById('seminarSelectionArea');
+  container.innerHTML = `
+    <div class="initial-loading">
+      <div class="spinner"></div>
+      <p>설명회 정보를 다시 불러오는 중입니다...</p>
+      <p style="font-size: 12px; color: #999; margin-top: 5px;">최대 5초 소요</p>
+    </div>
+  `;
+
+  loadSeminarScheduleOptimized()
     .then(() => {
       document.querySelector('.select-guide').style.display = 'block';
       const defaultInfoBox = document.getElementById('defaultInfoBox');
@@ -91,16 +237,20 @@ function retryLoadSeminars() {
     })
     .catch((error) => {
       console.error('재시도 실패:', error);
-      const container = document.getElementById('seminarSelectionArea');
-      container.innerHTML = `
-            <div class="error">
-                <p style="font-size: 16px; margin-bottom: 10px;">설명회 정보를 불러올 수 없습니다.</p>
-                <p style="font-size: 14px; color: #666;">네트워크 연결을 확인하고 다시 시도해주세요.</p>
-                <button class="btn btn-primary" onclick="retryLoadSeminars()" style="margin-top: 15px;">다시 시도</button>
-            </div>
-        `;
+      showLoadError();
     });
 }
+
+// ===== 기존 loadSeminarSchedule 함수는 삭제하고 위의 loadSeminarScheduleOptimized로 대체 =====
+
+// ===== Service Worker 등록 추가 =====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {
+    console.log('Service Worker 등록 실패 (무시)');
+  });
+}
+
+// ===== 이하 기존 함수들은 그대로 유지 =====
 
 // 로딩 표시
 function showLoading(message = '처리중...') {
@@ -134,43 +284,6 @@ function showAlert(message, duration = 3000) {
   setTimeout(() => {
     alert.remove();
   }, duration);
-}
-
-// 설명회 정보 로드 (타임아웃 추가)
-async function loadSeminarSchedule() {
-  try {
-    // 타임아웃 설정 (10초)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    const response = await fetch(`${API_URL}?action=getSeminarSchedule`, {
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) throw new Error('네트워크 응답 실패');
-
-    const data = await response.json();
-
-    if (data.success && data.schedule && data.schedule.length > 0) {
-      // 활성화되고 아직 진행되지 않은 설명회만 필터링
-      seminarSchedule = data.schedule.filter(
-        (s) => s.status === 'active' && !s.isPast
-      );
-
-      console.log('활성 설명회:', seminarSchedule);
-      return true;
-    } else {
-      throw new Error('활성화된 설명회가 없습니다');
-    }
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error('요청 시간이 초과되었습니다');
-    }
-    console.error('Error:', error);
-    throw error;
-  }
 }
 
 // 설명회 선택 화면 표시
@@ -236,6 +349,7 @@ function displaySeminarSelection() {
         </div>
     `;
 }
+
 // 설명회 선택 시
 function selectSeminar(seminarId) {
   selectedSeminar = seminarSchedule.find((s) => s.id === seminarId);
@@ -299,6 +413,12 @@ function updateSelectedSeminarInfo() {
     }
   }
 }
+
+// ===== 이하 모든 기존 함수들 그대로 유지 =====
+// proceedToReservation, showScreen, checkAttemptLimit, showSecurityModal,
+// checkPreviousInfo, goBackFromInfo, validatePhone, handlePhoneSubmit,
+// validateForm, handleInfoSubmit, handleCheckSubmit, cancelReservation,
+// formatDate, formatTime 등 모든 함수 그대로 유지
 
 // 예약 진행
 function proceedToReservation() {
@@ -699,7 +819,7 @@ async function handleInfoSubmit(event) {
   // 설명회 정보 재확인
   if (!selectedSeminar) {
     showAlert('설명회 정보를 다시 불러오는 중입니다...');
-    await loadSeminarSchedule();
+    await loadSeminarScheduleOptimized();
     if (!selectedSeminar) {
       showAlert('설명회 정보를 불러올 수 없습니다. 다시 시도해주세요.');
       return;
@@ -745,6 +865,9 @@ async function handleInfoSubmit(event) {
     hideLoading();
 
     if (result.success) {
+      // ===== 캐시 무효화 추가 =====
+      localStorage.removeItem(CACHE_KEY);
+
       if (result.isWaitlist) {
         // 대기예약 완료 화면
         document.getElementById('completeTitle').textContent =
@@ -967,6 +1090,9 @@ async function cancelReservation() {
     hideLoading();
 
     if (result.success) {
+      // ===== 캐시 무효화 추가 =====
+      localStorage.removeItem(CACHE_KEY);
+
       showAlert('예약이 취소되었습니다.');
       showScreen('home');
       document.getElementById('checkForm').reset();
