@@ -4,9 +4,6 @@ const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb2dsdW13dXpjdGJjanRjdm5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1OTk5OTgsImV4cCI6MjA3MTE3NTk5OH0.Uza-Z3CzwQgkYKJmKdwTNCAYgaxeKFs__2udUSAGpJg';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 기존 API_URL은 주석 처리
-// const API_URL = 'https://script.google.com/macros/s/AKfycbx-ktPhpncbuQ3ny78UfN_mgZPq6JAbA8CcLe7-fYQ6A9edGgVgQX19NrSt6btnPv--xA/exec';
-
 let seminarSchedule = [];
 let selectedSeminar = null;
 let currentReservation = null;
@@ -211,8 +208,7 @@ function getFallbackSchedule() {
   });
 }
 
-// ===== 최적화된 로드 함수 =====
-// ===== Supabase로 설명회 정보 로드 (교체용) =====
+// ===== Supabase로 설명회 정보 로드 =====
 async function loadSeminarScheduleOptimized() {
   console.log('Supabase에서 설명회 정보 로드 시작');
 
@@ -319,33 +315,13 @@ function updateUIAfterLoad() {
   }
 }
 
-// ===== 백그라운드 데이터 갱신 =====
+// ===== 백그라운드 데이터 갱신 (Supabase) =====
 async function refreshDataInBackground() {
-  console.log('백그라운드 데이터 갱신 시작');
+  console.log('백그라운드 데이터 갱신 시작 (Supabase)');
 
   try {
-    const response = await fetch(`${API_URL}?action=getSeminarSchedule`, {
-      method: 'GET',
-      cache: 'no-cache',
-    });
-
-    if (!response.ok) return;
-
-    const data = await response.json();
-
-    if (data.success && data.schedule && Array.isArray(data.schedule)) {
-      const newSchedule = data.schedule.filter(
-        (s) => (!s.status || s.status === 'active') && !s.isPast
-      );
-
-      // 데이터가 변경되었는지 확인
-      if (JSON.stringify(newSchedule) !== JSON.stringify(seminarSchedule)) {
-        console.log('데이터 변경 감지, UI 업데이트');
-        seminarSchedule = newSchedule;
-        setCachedData(newSchedule);
-        displaySeminarSelection();
-      }
-    }
+    // Supabase에서 다시 로드
+    await loadSeminarScheduleOptimized();
   } catch (error) {
     console.log('백그라운드 업데이트 실패 (무시):', error);
   }
@@ -412,8 +388,7 @@ function displaySeminarSelection() {
   `;
 }
 
-// ===== 설명회 옵션 HTML 생성 =====
-// 1. createSeminarOption 함수 수정 - 잔여석 정보 제거
+// ===== 설명회 옵션 HTML 생성 (잔여석 제거) =====
 function createSeminarOption(seminar, autoSelected) {
   const isFull = seminar.reserved >= seminar.maxCapacity;
   const available =
@@ -443,7 +418,6 @@ function createSeminarOption(seminar, autoSelected) {
       <p>${seminar.location}</p>
     </div>
   `;
-  // 잔여석 정보 제거됨
 }
 
 // ===== 에러 표시 =====
@@ -490,7 +464,7 @@ async function retryLoadSeminars() {
       <div class="initial-loading">
         <div class="spinner"></div>
         <p>설명회 정보를 다시 불러오는 중입니다...</p>
-        <p style="font-size: 12px; color: #999; margin-top: 5px;">최대 8초 소요</p>
+        <p style="font-size: 12px; color: #999; margin-top: 5px;">잠시만 기다려주세요</p>
       </div>
     `;
   }
@@ -498,7 +472,7 @@ async function retryLoadSeminars() {
   await loadSeminarScheduleWithFallback();
 }
 
-// ===== 이하 기존 함수들 그대로 유지 =====
+// ===== 기본 UI 함수들 =====
 
 // 로딩 표시
 function showLoading(message = '처리중...') {
@@ -578,7 +552,7 @@ function selectSeminar(seminarId) {
   }
 }
 
-// 2. updateSelectedSeminarInfo 함수 수정 - 잔여석 정보 제거
+// 선택된 설명회 정보 업데이트 (잔여석 제거)
 function updateSelectedSeminarInfo() {
   const infoBox = document.getElementById('defaultInfoBox');
 
@@ -595,7 +569,6 @@ function updateSelectedSeminarInfo() {
       <br>
       <p style="font-size: 13px; color: #666;">※ 설명회 참석 후 개별 컨설팅 예약이 가능합니다.</p>
     `;
-    // 잔여석 정보 제거됨
 
     // 마감 안내 표시
     const fullNotice = document.getElementById('fullNotice');
@@ -608,22 +581,6 @@ function updateSelectedSeminarInfo() {
     }
   }
 }
-
-// Service Worker 등록
-//if ('serviceWorker' in navigator) {
-//  window.addEventListener('load', () => {
-//    navigator.serviceWorker
-//      .register('/sw.js')
-//      .then((registration) => console.log('SW registered:', registration))
-//      .catch((error) => console.log('SW registration failed:', error));
-//  });
-//}
-
-// 나머지 모든 기존 함수들 그대로 유지
-// proceedToReservation, showScreen, checkAttemptLimit, showSecurityModal,
-// checkPreviousInfo, goBackFromInfo, validatePhone, handlePhoneSubmit,
-// validateForm, handleInfoSubmit, handleCheckSubmit, cancelReservation,
-// formatDate, formatTime 등...
 
 // 예약 진행
 function proceedToReservation() {
@@ -689,8 +646,10 @@ function showScreen(screenId) {
     previousInfo = null;
     isWaitlistReservation = false;
     const noticeElement = document.getElementById('infoLoadedNotice');
-    noticeElement.classList.add('hidden');
-    noticeElement.style.display = 'none';
+    if (noticeElement) {
+      noticeElement.classList.add('hidden');
+      noticeElement.style.display = 'none';
+    }
 
     // 마감 상태에 따라 제목 변경
     if (selectedSeminar && selectedSeminar.isFull) {
@@ -705,8 +664,10 @@ function showScreen(screenId) {
     previousInfo = null;
     isWaitlistReservation = false;
     const noticeElement = document.getElementById('infoLoadedNotice');
-    noticeElement.classList.add('hidden');
-    noticeElement.style.display = 'none';
+    if (noticeElement) {
+      noticeElement.classList.add('hidden');
+      noticeElement.style.display = 'none';
+    }
     // 폼 초기화
     document.getElementById('phoneForm').reset();
     document.getElementById('infoForm').reset();
@@ -796,109 +757,6 @@ function showSecurityModal() {
   });
 }
 
-// 이전 정보 확인 및 불러오기
-async function checkPreviousInfo() {
-  const phone = document.getElementById('initialPhone').value.replace(/-/g, '');
-
-  if (!phone) {
-    showAlert('연락처를 입력해주세요.');
-    return;
-  }
-
-  if (!validatePhone(document.getElementById('initialPhone').value)) return;
-
-  // 시도 횟수 확인
-  if (!checkAttemptLimit(phone)) return;
-
-  try {
-    // 보안 확인 모달 표시
-    const studentInitial = await showSecurityModal();
-
-    if (!studentInitial || studentInitial.length !== 1) {
-      showAlert('학생 이름의 첫 글자를 정확히 입력해주세요.');
-      return;
-    }
-
-    showLoading('이전 정보 확인 중...');
-
-    const response = await fetch(
-      `${API_URL}?action=checkPreviousInfo&phone=${encodeURIComponent(
-        phone
-      )}&initial=${encodeURIComponent(studentInitial)}`
-    );
-    const data = await response.json();
-
-    hideLoading();
-
-    if (data.success && data.hasPreviousInfo) {
-      previousInfo = data.previousInfo;
-      console.log('이전 정보 찾음 - isPreviousInfoLoaded를 true로 설정');
-      isPreviousInfoLoaded = true;
-
-      // 바로 다음 화면으로 이동
-      showScreen('info');
-
-      setTimeout(() => {
-        // 최소 정보만 자동 입력
-        document.getElementById('school').value = previousInfo.school || '';
-        document.getElementById('grade').value = previousInfo.grade || '';
-
-        // 민감 정보는 힌트만 제공
-        if (previousInfo.studentName && previousInfo.studentName.length > 0) {
-          const maskedName =
-            previousInfo.studentName.substring(0, 1) +
-            '○'.repeat(previousInfo.studentName.length - 1);
-          document.getElementById(
-            'studentName'
-          ).placeholder = `예: ${maskedName}`;
-        }
-
-        // 수학 선행정도는 입력하도록 유도
-        document.getElementById('mathLevel').placeholder = '다시 입력해주세요';
-
-        showAlert(
-          '학교와 학년 정보를 불러왔습니다. 나머지 정보는 직접 입력해주세요.'
-        );
-      }, 100);
-    } else {
-      showAlert('일치하는 정보가 없습니다.');
-      console.log('이전 정보 없음 - 상태 초기화');
-      isPreviousInfoLoaded = false;
-      previousInfo = null;
-      const noticeElement = document.getElementById('infoLoadedNotice');
-      noticeElement.classList.add('hidden');
-      noticeElement.style.display = 'none';
-    }
-  } catch (error) {
-    hideLoading();
-
-    if (error === 'cancelled') {
-      return;
-    }
-
-    console.error('Error:', error);
-    showAlert('정보 확인 중 오류가 발생했습니다.');
-    console.log('오류 발생 - 상태 초기화');
-    isPreviousInfoLoaded = false;
-    previousInfo = null;
-    const noticeElement = document.getElementById('infoLoadedNotice');
-    noticeElement.classList.add('hidden');
-    noticeElement.style.display = 'none';
-  }
-}
-
-// 정보 입력 화면에서 뒤로 가기
-function goBackFromInfo() {
-  console.log('뒤로 버튼 클릭 - 상태 초기화');
-  isPreviousInfoLoaded = false;
-  previousInfo = null;
-  isWaitlistReservation = false;
-  const noticeElement = document.getElementById('infoLoadedNotice');
-  noticeElement.classList.add('hidden');
-  noticeElement.style.display = 'none';
-  showScreen('phone');
-}
-
 // 전화번호 검증
 function validatePhone(phone) {
   const cleaned = phone.replace(/-/g, '');
@@ -959,10 +817,26 @@ function handlePhoneSubmit(event) {
 
   // 알림 박스도 확실히 숨기기
   const noticeElement = document.getElementById('infoLoadedNotice');
-  noticeElement.classList.add('hidden');
-  noticeElement.style.display = 'none';
+  if (noticeElement) {
+    noticeElement.classList.add('hidden');
+    noticeElement.style.display = 'none';
+  }
 
   showScreen('info');
+}
+
+// 정보 입력 화면에서 뒤로 가기
+function goBackFromInfo() {
+  console.log('뒤로 버튼 클릭 - 상태 초기화');
+  isPreviousInfoLoaded = false;
+  previousInfo = null;
+  isWaitlistReservation = false;
+  const noticeElement = document.getElementById('infoLoadedNotice');
+  if (noticeElement) {
+    noticeElement.classList.add('hidden');
+    noticeElement.style.display = 'none';
+  }
+  showScreen('phone');
 }
 
 // 폼 검증
@@ -1012,7 +886,54 @@ function validateForm() {
   return true;
 }
 
-// 예약 정보 폼 제출
+// 날짜 포맷팅
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  return `${date.getFullYear()}년 ${
+    date.getMonth() + 1
+  }월 ${date.getDate()}일(${days[date.getDay()]})`;
+}
+
+// 시간 포맷팅
+function formatTime(timeStr) {
+  const [hours, minutes] = timeStr.split(':');
+  const hour = parseInt(hours);
+  const period = hour < 12 ? '오전' : '오후';
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${period} ${displayHour}시${minutes !== '00' ? ` ${minutes}분` : ''}`;
+}
+
+// ===== 유틸리티 함수 =====
+function hashPassword(password) {
+  const SECURITY_SALT = 'math-morning-2025-secret';
+  const str = password + SECURITY_SALT;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16);
+}
+
+function formatPhoneNumber(phone) {
+  const cleaned = phone.replace(/[^0-9]/g, '');
+  if (cleaned.length === 11) {
+    return (
+      cleaned.substring(0, 3) +
+      '-' +
+      cleaned.substring(3, 7) +
+      '-' +
+      cleaned.substring(7, 11)
+    );
+  }
+  return phone;
+}
+
+// ===== Supabase 연동 함수들 =====
+
+// 예약 생성 (Supabase 버전)
 async function handleInfoSubmit(event) {
   event.preventDefault();
 
@@ -1021,12 +942,9 @@ async function handleInfoSubmit(event) {
 
   // 설명회 정보 재확인
   if (!selectedSeminar) {
-    showAlert('설명회 정보를 다시 불러오는 중입니다...');
-    await loadSeminarScheduleOptimized();
-    if (!selectedSeminar) {
-      showAlert('설명회 정보를 불러올 수 없습니다. 다시 시도해주세요.');
-      return;
-    }
+    showAlert('설명회를 다시 선택해주세요.');
+    showScreen('home');
+    return;
   }
 
   const submitBtn = event.target.querySelector('button[type="submit"]');
@@ -1034,123 +952,134 @@ async function handleInfoSubmit(event) {
   submitBtn.textContent = '처리중...';
   isSubmitting = true;
 
-  // 대기예약 여부 결정
   const isWaitlist = selectedSeminar.isFull;
 
   showLoading(isWaitlist ? '대기예약 처리 중...' : '예약 처리 중...');
 
   try {
+    const parentPhone = document
+      .getElementById('parentPhone')
+      .value.replace(/-/g, '');
+
+    // 1. 중복 체크
+    const { data: existing } = await supabase
+      .from('reservations')
+      .select('*')
+      .eq('parent_phone', parentPhone)
+      .eq('seminar_id', selectedSeminar.id)
+      .in('status', ['예약', '대기']);
+
+    if (existing && existing.length > 0) {
+      hideLoading();
+      showAlert('이미 해당 설명회에 예약이 존재합니다.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = isWaitlist ? '대기예약 신청' : '예약 확정';
+      isSubmitting = false;
+      return;
+    }
+
+    // 2. 대기번호 계산 (대기예약인 경우)
+    let waitlistNumber = null;
+    if (isWaitlist) {
+      const { count } = await supabase
+        .from('reservations')
+        .select('*', { count: 'exact', head: true })
+        .eq('seminar_id', selectedSeminar.id)
+        .eq('status', '대기');
+
+      waitlistNumber = (count || 0) + 1;
+    }
+
+    // 3. 예약 데이터 준비
     const reservationData = {
-      action: 'createReservation',
-      seminarId: selectedSeminar.id,
-      studentName: document.getElementById('studentName').value.trim(),
-      parentPhone: document
-        .getElementById('parentPhone')
-        .value.replace(/-/g, ''),
+      reservation_id: 'SR' + Date.now(),
+      seminar_id: selectedSeminar.id,
+      student_name: document.getElementById('studentName').value.trim(),
+      parent_phone: parentPhone,
       school: document.getElementById('school').value.trim(),
       grade: document.getElementById('grade').value,
-      mathLevel: document.getElementById('mathLevel').value.trim(),
-      password: document.getElementById('password').value,
-      privacyConsent: document.getElementById('privacyConsent').checked,
-      isWaitlist: isWaitlist,
+      math_level: document.getElementById('mathLevel').value.trim(),
+      password: hashPassword(document.getElementById('password').value),
+      privacy_consent: document.getElementById('privacyConsent').checked
+        ? 'Y'
+        : 'N',
+      status: isWaitlist ? '대기' : '예약',
+      notes: isWaitlist ? `대기 ${waitlistNumber}번` : '',
+      waitlist_number: waitlistNumber,
     };
 
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify(reservationData),
-    });
+    // 4. 예약 저장
+    const { data, error } = await supabase
+      .from('reservations')
+      .insert([reservationData])
+      .select()
+      .single();
 
-    const result = await response.json();
+    if (error) throw error;
 
     hideLoading();
 
-    if (result.success) {
-      // 캐시 무효화
-      localStorage.removeItem(CACHE_KEY);
-
-      if (result.isWaitlist) {
-        // 대기예약 완료 화면
-        document.getElementById('completeTitle').textContent =
-          '대기예약이 완료되었습니다';
-        document.getElementById('completeSubtitle').textContent =
-          '취소자 발생 시 순번대로 연락드리겠습니다.';
-        document.getElementById('completionInfo').innerHTML = `
-          <p><strong>예약번호:</strong> ${result.reservationId}</p>
-          <p><strong>대기순번:</strong> ${result.waitlistNumber || '-'}번째</p>
-          <p><strong>설명회:</strong> ${result.seminarInfo.title}</p>
-          <p><strong>날짜:</strong> ${formatDate(result.seminarInfo.date)}</p>
-          <p><strong>시간:</strong> ${formatTime(result.seminarInfo.time)}</p>
-          <p><strong>장소:</strong> ${result.seminarInfo.location}</p>
-          <p><strong>학생명:</strong> ${reservationData.studentName}</p>
-          <p style="color: #c2185b; margin-top: 10px;"><strong>※ 대기예약입니다</strong></p>
-        `;
-        document.getElementById('completeInfoBox').innerHTML = `
-          <p><strong>대기예약 안내사항</strong></p>
-          <ul>
-            <li>취소자 발생 시 대기 순번대로 개별 연락드립니다.</li>
-            <li>연락을 받지 못하실 경우 다음 순번으로 넘어갑니다.</li>
-            <li>대기예약도 언제든 취소 가능합니다.</li>
-            <li>정규 예약으로 전환 시 별도 안내드립니다.</li>
-          </ul>
-        `;
-      } else {
-        // 일반 예약 완료 화면
-        document.getElementById('completeTitle').textContent =
-          '예약이 완료되었습니다';
-        document.getElementById('completeSubtitle').textContent =
-          '설명회에서 뵙겠습니다.';
-        document.getElementById('completionInfo').innerHTML = `
-          <p><strong>예약번호:</strong> ${result.reservationId}</p>
-          <p><strong>설명회:</strong> ${result.seminarInfo.title}</p>
-          <p><strong>날짜:</strong> ${formatDate(result.seminarInfo.date)}</p>
-          <p><strong>시간:</strong> ${formatTime(result.seminarInfo.time)}</p>
-          <p><strong>소요시간:</strong> ${
-            result.seminarInfo.duration || '90분'
-          }</p>
-          <p><strong>장소:</strong> ${result.seminarInfo.location}</p>
-          <p><strong>학생명:</strong> ${reservationData.studentName}</p>
-        `;
-        document.getElementById('completeInfoBox').innerHTML = `
-          <p><strong>안내사항</strong></p>
-          <ul>
-            <li>설명회 시작 10분 전까지 도착해주세요.</li>
-            <li>주차공간이 협소하니 대중교통 이용을 권장합니다.</li>
-            <li>설명회 참석 후 개별 컨설팅 예약이 가능합니다.</li>
-            <li>설명회는 90분간 진행됩니다.</li>
-          </ul>
-        `;
-      }
-
-      showScreen('complete');
-
-      // 폼 초기화
-      document.getElementById('infoForm').reset();
-      document.getElementById('phoneForm').reset();
-      const noticeElement = document.getElementById('infoLoadedNotice');
-      noticeElement.classList.add('hidden');
-      noticeElement.style.display = 'none';
-
-      // 플래그 초기화
-      previousInfo = null;
-      isPreviousInfoLoaded = false;
-      isWaitlistReservation = false;
-      console.log('예약 완료 - 상태 초기화');
+    // 5. 완료 화면 표시
+    if (isWaitlist) {
+      document.getElementById('completeTitle').textContent =
+        '대기예약이 완료되었습니다';
+      document.getElementById('completeSubtitle').textContent =
+        '취소자 발생 시 순번대로 연락드리겠습니다.';
+      document.getElementById('completionInfo').innerHTML = `
+        <p><strong>예약번호:</strong> ${reservationData.reservation_id}</p>
+        <p><strong>대기순번:</strong> ${waitlistNumber}번째</p>
+        <p><strong>설명회:</strong> ${selectedSeminar.title}</p>
+        <p><strong>날짜:</strong> ${formatDate(selectedSeminar.date)}</p>
+        <p><strong>시간:</strong> ${formatTime(selectedSeminar.time)}</p>
+        <p><strong>장소:</strong> ${selectedSeminar.location}</p>
+        <p><strong>학생명:</strong> ${reservationData.student_name}</p>
+        <p style="color: #c2185b; margin-top: 10px;"><strong>※ 대기예약입니다</strong></p>
+      `;
+      document.getElementById('completeInfoBox').innerHTML = `
+        <p><strong>대기예약 안내사항</strong></p>
+        <ul>
+          <li>취소자 발생 시 대기 순번대로 개별 연락드립니다.</li>
+          <li>연락을 받지 못하실 경우 다음 순번으로 넘어갑니다.</li>
+          <li>대기예약도 언제든 취소 가능합니다.</li>
+        </ul>
+      `;
     } else {
-      if (result.existingReservation) {
-        if (
-          confirm(result.message + '\n\n예약 확인 화면으로 이동하시겠습니까?')
-        ) {
-          showScreen('check');
-          document.getElementById('checkPhone').value =
-            reservationData.parentPhone;
-        }
-      } else {
-        showAlert(result.message || '예약 중 오류가 발생했습니다.');
-      }
+      document.getElementById('completeTitle').textContent =
+        '예약이 완료되었습니다';
+      document.getElementById('completeSubtitle').textContent =
+        '설명회에서 뵙겠습니다.';
+      document.getElementById('completionInfo').innerHTML = `
+        <p><strong>예약번호:</strong> ${reservationData.reservation_id}</p>
+        <p><strong>설명회:</strong> ${selectedSeminar.title}</p>
+        <p><strong>날짜:</strong> ${formatDate(selectedSeminar.date)}</p>
+        <p><strong>시간:</strong> ${formatTime(selectedSeminar.time)}</p>
+        <p><strong>장소:</strong> ${selectedSeminar.location}</p>
+        <p><strong>학생명:</strong> ${reservationData.student_name}</p>
+      `;
+      document.getElementById('completeInfoBox').innerHTML = `
+        <p><strong>안내사항</strong></p>
+        <ul>
+          <li>설명회 시작 10분 전까지 도착해주세요.</li>
+          <li>주차공간이 협소하니 대중교통 이용을 권장합니다.</li>
+          <li>설명회 참석 후 개별 컨설팅 예약이 가능합니다.</li>
+          <li>설명회는 90분간 진행됩니다.</li>
+        </ul>
+      `;
     }
+
+    showScreen('complete');
+
+    // 폼 초기화
+    document.getElementById('infoForm').reset();
+    document.getElementById('phoneForm').reset();
+
+    // 캐시 무효화
+    localStorage.removeItem(CACHE_KEY);
+
+    // 플래그 초기화
+    previousInfo = null;
+    isPreviousInfoLoaded = false;
+    isWaitlistReservation = false;
   } catch (error) {
     hideLoading();
     console.error('Error:', error);
@@ -1162,7 +1091,7 @@ async function handleInfoSubmit(event) {
   }
 }
 
-// 예약 확인 폼 제출
+// 예약 확인 (Supabase 버전)
 async function handleCheckSubmit(event) {
   event.preventDefault();
 
@@ -1183,51 +1112,65 @@ async function handleCheckSubmit(event) {
   showLoading('예약 정보 확인 중...');
 
   try {
-    const response = await fetch(
-      `${API_URL}?action=checkReservation&phone=${encodeURIComponent(
-        phone
-      )}&password=${encodeURIComponent(password)}`
-    );
-    const data = await response.json();
+    // 1. 예약 조회
+    const { data: reservations, error } = await supabase
+      .from('reservations')
+      .select('*')
+      .eq('parent_phone', phone)
+      .eq('password', hashPassword(password))
+      .in('status', ['예약', '대기'])
+      .order('id', { ascending: false })
+      .limit(1);
+
+    if (error || !reservations || reservations.length === 0) {
+      hideLoading();
+      showAlert('예약을 찾을 수 없거나 비밀번호가 일치하지 않습니다.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = '예약 확인하기';
+      return;
+    }
+
+    const reservation = reservations[0];
+
+    // 2. 설명회 정보 가져오기
+    const { data: seminar } = await supabase
+      .from('seminars')
+      .select('*')
+      .eq('id', reservation.seminar_id)
+      .single();
 
     hideLoading();
 
-    if (data.success && data.reservation) {
-      currentReservation = data.reservation;
+    // 3. 전역 변수에 저장
+    currentReservation = {
+      ...reservation,
+      seminarInfo: seminar,
+    };
 
-      let reservationTypeText = '';
-      if (data.reservation.status === '대기') {
-        const waitlistMatch = data.reservation.notes.match(/대기\s*(\d+)번/);
-        const waitlistNumber = waitlistMatch ? waitlistMatch[1] : '-';
-        reservationTypeText = `<p style="color: #c2185b;"><strong>예약 유형:</strong> 대기예약 (${waitlistNumber}번째)</p>`;
-      }
-
-      document.getElementById('reservationInfo').innerHTML = `
-        <p><strong>예약번호:</strong> ${data.reservation.reservationId}</p>
-        ${reservationTypeText}
-        <p><strong>설명회:</strong> ${data.reservation.seminarInfo.title}</p>
-        <p><strong>날짜:</strong> ${formatDate(
-          data.reservation.seminarInfo.date
-        )}</p>
-        <p><strong>시간:</strong> ${formatTime(
-          data.reservation.seminarInfo.time
-        )}</p>
-        <p><strong>소요시간:</strong> ${
-          data.reservation.seminarInfo.duration || '90분'
-        }</p>
-        <p><strong>장소:</strong> ${data.reservation.seminarInfo.location}</p>
-        <p><strong>학생명:</strong> ${data.reservation.studentName}</p>
-        <p><strong>연락처:</strong> ${data.reservation.parentPhone}</p>
-        <p><strong>학교:</strong> ${data.reservation.school}</p>
-        <p><strong>학년:</strong> ${data.reservation.grade}</p>
-        <p><strong>수학 선행정도:</strong> ${data.reservation.mathLevel}</p>
-      `;
-      showScreen('result');
-    } else {
-      showAlert(
-        data.message || '예약을 찾을 수 없거나 비밀번호가 일치하지 않습니다.'
-      );
+    // 4. 예약 정보 표시
+    let reservationTypeText = '';
+    if (reservation.status === '대기') {
+      const waitlistNumber = reservation.waitlist_number || '-';
+      reservationTypeText = `<p style="color: #c2185b;"><strong>예약 유형:</strong> 대기예약 (${waitlistNumber}번째)</p>`;
     }
+
+    document.getElementById('reservationInfo').innerHTML = `
+      <p><strong>예약번호:</strong> ${reservation.reservation_id}</p>
+      ${reservationTypeText}
+      <p><strong>설명회:</strong> ${seminar.title}</p>
+      <p><strong>날짜:</strong> ${formatDate(seminar.date)}</p>
+      <p><strong>시간:</strong> ${formatTime(seminar.time.substring(0, 5))}</p>
+      <p><strong>장소:</strong> ${seminar.location}</p>
+      <p><strong>학생명:</strong> ${reservation.student_name}</p>
+      <p><strong>연락처:</strong> ${formatPhoneNumber(
+        reservation.parent_phone
+      )}</p>
+      <p><strong>학교:</strong> ${reservation.school}</p>
+      <p><strong>학년:</strong> ${reservation.grade}</p>
+      <p><strong>수학 선행정도:</strong> ${reservation.math_level}</p>
+    `;
+
+    showScreen('result');
   } catch (error) {
     hideLoading();
     console.error('Error:', error);
@@ -1238,7 +1181,7 @@ async function handleCheckSubmit(event) {
   }
 }
 
-// 예약 취소
+// 예약 취소 (Supabase 버전)
 async function cancelReservation() {
   if (!confirm('정말로 예약을 취소하시겠습니까?')) {
     return;
@@ -1250,36 +1193,32 @@ async function cancelReservation() {
     return;
   }
 
+  // 비밀번호 확인
+  if (hashPassword(password) !== currentReservation.password) {
+    showAlert('비밀번호가 일치하지 않습니다.');
+    return;
+  }
+
   showLoading('예약 취소 중...');
 
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify({
-        action: 'cancelReservation',
-        reservationId: currentReservation.reservationId,
-        password: password,
-      }),
-    });
+    // 예약 상태를 '취소'로 업데이트
+    const { error } = await supabase
+      .from('reservations')
+      .update({ status: '취소' })
+      .eq('id', currentReservation.id);
 
-    const result = await response.json();
+    if (error) throw error;
 
     hideLoading();
 
-    if (result.success) {
-      // 캐시 무효화
-      localStorage.removeItem(CACHE_KEY);
+    // 캐시 무효화
+    localStorage.removeItem(CACHE_KEY);
 
-      showAlert('예약이 취소되었습니다.');
-      showScreen('home');
-      document.getElementById('checkForm').reset();
-      currentReservation = null;
-    } else {
-      showAlert(result.message || '취소 중 오류가 발생했습니다.');
-    }
+    showAlert('예약이 취소되었습니다.');
+    showScreen('home');
+    document.getElementById('checkForm').reset();
+    currentReservation = null;
   } catch (error) {
     hideLoading();
     console.error('Error:', error);
@@ -1287,20 +1226,87 @@ async function cancelReservation() {
   }
 }
 
-// 날짜 포맷팅
-function formatDate(dateStr) {
-  const date = new Date(dateStr);
-  const days = ['일', '월', '화', '수', '목', '금', '토'];
-  return `${date.getFullYear()}년 ${
-    date.getMonth() + 1
-  }월 ${date.getDate()}일(${days[date.getDay()]})`;
-}
+// 이전 정보 확인 (Supabase 버전)
+async function checkPreviousInfo() {
+  const phone = document.getElementById('initialPhone').value.replace(/-/g, '');
 
-// 시간 포맷팅
-function formatTime(timeStr) {
-  const [hours, minutes] = timeStr.split(':');
-  const hour = parseInt(hours);
-  const period = hour < 12 ? '오전' : '오후';
-  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  return `${period} ${displayHour}시${minutes !== '00' ? ` ${minutes}분` : ''}`;
+  if (!phone) {
+    showAlert('연락처를 입력해주세요.');
+    return;
+  }
+
+  if (!validatePhone(document.getElementById('initialPhone').value)) return;
+
+  if (!checkAttemptLimit(phone)) return;
+
+  try {
+    const studentInitial = await showSecurityModal();
+
+    if (!studentInitial || studentInitial.length !== 1) {
+      showAlert('학생 이름의 첫 글자를 정확히 입력해주세요.');
+      return;
+    }
+
+    showLoading('이전 정보 확인 중...');
+
+    // Supabase에서 가장 최근 예약 조회
+    const { data, error } = await supabase
+      .from('reservations')
+      .select('*')
+      .eq('parent_phone', phone)
+      .order('id', { ascending: false })
+      .limit(1);
+
+    hideLoading();
+
+    if (
+      data &&
+      data.length > 0 &&
+      data[0].student_name.charAt(0) === studentInitial
+    ) {
+      previousInfo = {
+        studentName: data[0].student_name,
+        school: data[0].school,
+        grade: data[0].grade,
+        mathLevel: data[0].math_level,
+      };
+
+      isPreviousInfoLoaded = true;
+
+      showScreen('info');
+
+      setTimeout(() => {
+        document.getElementById('school').value = previousInfo.school || '';
+        document.getElementById('grade').value = previousInfo.grade || '';
+
+        const maskedName =
+          previousInfo.studentName.substring(0, 1) +
+          '○'.repeat(previousInfo.studentName.length - 1);
+        document.getElementById(
+          'studentName'
+        ).placeholder = `예: ${maskedName}`;
+
+        document.getElementById('mathLevel').placeholder = '다시 입력해주세요';
+
+        showAlert(
+          '학교와 학년 정보를 불러왔습니다. 나머지 정보는 직접 입력해주세요.'
+        );
+      }, 100);
+    } else {
+      showAlert('일치하는 정보가 없습니다.');
+      isPreviousInfoLoaded = false;
+      previousInfo = null;
+    }
+  } catch (error) {
+    hideLoading();
+
+    if (error === 'cancelled') {
+      return;
+    }
+
+    console.error('Error:', error);
+    showAlert('정보 확인 중 오류가 발생했습니다.');
+    isPreviousInfoLoaded = false;
+    previousInfo = null;
+  }
 }
