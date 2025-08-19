@@ -117,6 +117,21 @@ document.addEventListener('DOMContentLoaded', async function () {
     console.error('초기화 중 오류:', error);
     showLoadError();
   }
+  // 이벤트 리스너 추가
+  const infoForm = document.getElementById('infoForm');
+  if (infoForm) {
+    infoForm.addEventListener('submit', handleInfoSubmit);
+  }
+
+  const checkForm = document.getElementById('checkForm');
+  if (checkForm) {
+    checkForm.addEventListener('submit', handleCheckSubmit);
+  }
+
+  const phoneForm = document.getElementById('phoneForm');
+  if (phoneForm) {
+    phoneForm.addEventListener('submit', handlePhoneSubmit);
+  }
 });
 
 // ===== 메인 로드 함수 (폴백 포함) =====
