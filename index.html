@@ -3,6 +3,63 @@
   <!-- Supabase 클라이언트 추가 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <head>
+    <script>
+      // 1. 모든 Service Worker 제거
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then(function (registrations) {
+            for (let registration of registrations) {
+              registration.unregister();
+            }
+          });
+      }
+
+      // 2. 모든 캐시 삭제
+      if ('caches' in window) {
+        caches.keys().then(function (names) {
+          for (let name of names) {
+            caches.delete(name);
+          }
+        });
+      }
+
+      // 3. 버전 기반 강제 새로고침
+      (function () {
+        const FORCE_VERSION = '20250820-2';
+        const STORAGE_KEY = 'force_refresh_version';
+        const savedVersion = sessionStorage.getItem(STORAGE_KEY);
+
+        if (savedVersion !== FORCE_VERSION) {
+          sessionStorage.setItem(STORAGE_KEY, FORCE_VERSION);
+
+          // URL에 타임스탬프 추가하여 완전히 새로운 요청으로 처리
+          const timestamp = new Date().getTime();
+          const separator = window.location.search ? '&' : '?';
+          const newUrl = window.location.href + separator + 't=' + timestamp;
+
+          // 하드 리로드
+          window.location.replace(newUrl);
+        }
+      })();
+    </script>
+    <script>
+      // 카카오톡 인앱 브라우저 감지
+      function isKakaoTalk() {
+        const ua = navigator.userAgent.toLowerCase();
+        return ua.includes('kakaotalk');
+      }
+
+      if (isKakaoTalk()) {
+        // 카톡에서 열린 경우 무조건 새 버전으로 리다이렉트
+        const timestamp = new Date().getTime();
+        const newUrl = window.location.pathname + '?kakao=' + timestamp;
+
+        if (!window.location.search.includes('kakao=')) {
+          window.location.replace(newUrl);
+        }
+      }
+    </script>
     <!-- 최우선 실행 스크립트 -->
     <script>
       // 버전 체크 및 강제 리다이렉트
