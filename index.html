@@ -1,10 +1,76 @@
 <!DOCTYPE html>
 <html lang="ko">
-  <!-- Supabase 클라이언트 추가 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <head>
+    <!-- 최우선 실행: 카카오톡 감지 및 리다이렉트 -->
     <script>
-      // 1. 모든 Service Worker 제거
+      (function () {
+        // 카카오톡 인앱 브라우저 감지
+        const isKakao = /KAKAOTALK/i.test(navigator.userAgent);
+
+        if (isKakao) {
+          // 현재 URL 파싱
+          const url = new URL(window.location.href);
+          const currentTime = new Date().getTime();
+
+          // 't' 파라미터가 없거나 1분 이상 지난 경우 리다이렉트
+          const existingTime = url.searchParams.get('t');
+          if (!existingTime || currentTime - parseInt(existingTime) > 60000) {
+            // 강제로 새 URL로 리다이렉트
+            url.searchParams.set('t', currentTime);
+            url.searchParams.set('v', '20250820');
+
+            // 즉시 리다이렉트 (현재 페이지 렌더링 방지)
+            document.write('<html><body>Loading...</body></html>');
+            window.location.replace(url.toString());
+            throw new Error('Redirecting...'); // 스크립트 실행 중지
+          }
+        }
+
+        // 일반 브라우저도 버전 체크
+        const CURRENT_VERSION = '20250820';
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlVersion = urlParams.get('v');
+
+        if (!urlVersion || urlVersion !== CURRENT_VERSION) {
+          urlParams.set('v', CURRENT_VERSION);
+          urlParams.set('t', new Date().getTime());
+          const newUrl = window.location.pathname + '?' + urlParams.toString();
+          window.location.replace(newUrl);
+          throw new Error('Version update...');
+        }
+      })();
+    </script>
+
+    <!-- 캐시 방지 메타 태그 (최대한 강력하게) -->
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0, max-age=0, s-maxage=0"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="-1" />
+    <meta http-equiv="Clear-Site-Data" content="cache" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>i.study VIP 학부모 설명회 예약</title>
+
+    <!-- 동적 버전 관리 CSS -->
+    <script>
+      document.write(
+        '<link rel="stylesheet" href="assets/css/index.css?v=' +
+          new Date().getTime() +
+          '" />'
+      );
+    </script>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <link rel="icon" href="data:," />
+
+    <!-- 추가 캐시 방지 -->
+    <script>
+      // Service Worker 제거
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker
           .getRegistrations()
@@ -15,7 +81,7 @@
           });
       }
 
-      // 2. 모든 캐시 삭제
+      // 모든 캐시 삭제
       if ('caches' in window) {
         caches.keys().then(function (names) {
           for (let name of names) {
@@ -24,83 +90,15 @@
         });
       }
 
-      // 3. 버전 기반 강제 새로고침
-      (function () {
-        const FORCE_VERSION = '20250820-2';
-        const STORAGE_KEY = 'force_refresh_version';
-        const savedVersion = sessionStorage.getItem(STORAGE_KEY);
-
-        if (savedVersion !== FORCE_VERSION) {
-          sessionStorage.setItem(STORAGE_KEY, FORCE_VERSION);
-
-          // URL에 타임스탬프 추가하여 완전히 새로운 요청으로 처리
-          const timestamp = new Date().getTime();
-          const separator = window.location.search ? '&' : '?';
-          const newUrl = window.location.href + separator + 't=' + timestamp;
-
-          // 하드 리로드
-          window.location.replace(newUrl);
-        }
-      })();
-    </script>
-    <script>
-      // 카카오톡 인앱 브라우저 감지
-      function isKakaoTalk() {
-        const ua = navigator.userAgent.toLowerCase();
-        return ua.includes('kakaotalk');
-      }
-
-      if (isKakaoTalk()) {
-        // 카톡에서 열린 경우 무조건 새 버전으로 리다이렉트
-        const timestamp = new Date().getTime();
-        const newUrl = window.location.pathname + '?kakao=' + timestamp;
-
-        if (!window.location.search.includes('kakao=')) {
-          window.location.replace(newUrl);
-        }
+      // localStorage 버전 체크
+      const STORAGE_VERSION = '20250820-v2';
+      const savedVersion = localStorage.getItem('app_version');
+      if (savedVersion !== STORAGE_VERSION) {
+        localStorage.clear();
+        sessionStorage.clear();
+        localStorage.setItem('app_version', STORAGE_VERSION);
       }
     </script>
-    <!-- 최우선 실행 스크립트 -->
-    <script>
-      // 버전 체크 및 강제 리다이렉트
-      (function () {
-        const CURRENT_VERSION = '20250820';
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlVersion = urlParams.get('v');
-
-        // 버전 파라미터가 없거나 오래된 경우 강제 리다이렉트
-        if (!urlVersion || urlVersion !== CURRENT_VERSION) {
-          // 기존 URL 파라미터 유지하면서 버전 추가
-          urlParams.set('v', CURRENT_VERSION);
-          const newUrl = window.location.pathname + '?' + urlParams.toString();
-
-          // 즉시 리다이렉트 (캐시 무시)
-          window.location.replace(newUrl);
-          return;
-        }
-      })();
-    </script>
-
-    <!-- 캐시 방지 메타 태그 -->
-    <meta
-      http-equiv="Cache-Control"
-      content="no-cache, no-store, must-revalidate"
-    />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <title>i.study VIP 학부모 설명회 예약</title>
-
-    <!-- 버전 파라미터 추가 -->
-    <link rel="stylesheet" href="assets/css/index.css?v=20250820" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- CSS 파일 링크 -->
-    <link rel="stylesheet" href="assets/css/index.css" />
-    <link rel="icon" href="data:," />
   </head>
   <body>
     <div class="container">
@@ -452,7 +450,13 @@
       </div>
     </div>
 
-    <!-- JavaScript 파일 링크 (body 끝나기 전에 위치) -->
-    <script src="assets/js/index.js"></script>
+    <!-- JavaScript 파일도 동적 버전 관리 -->
+    <script>
+      document.write(
+        '<script src="assets/js/index.js?v=' +
+          new Date().getTime() +
+          '"><\/script>'
+      );
+    </script>
   </body>
 </html>

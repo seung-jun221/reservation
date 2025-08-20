@@ -1,25 +1,60 @@
-# 모든 HTML 파일 캐시 방지
+# 모든 HTML 파일 캐시 완전 방지
 [[headers]]
   for = "/*.html"
   [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
+    Cache-Control = "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0"
+    Pragma = "no-cache"
+    Expires = "0"
+    X-Content-Type-Options = "nosniff"
+    # 카카오톡 캐시 방지를 위한 추가 헤더
+    Vary = "User-Agent"
+    
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0, private"
+    Pragma = "no-cache"
+    Expires = "0"
+    X-Frame-Options = "ALLOWALL"
+    # 카카오톡 대응 헤더
+    X-Robots-Tag = "noindex, nofollow, noarchive, nocache, noimageindex"
+
+[[headers]]
+  for = "/monitoring.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0, private"
     Pragma = "no-cache"
     Expires = "0"
 
-# CSS 파일 - 짧은 캐시
+# CSS 파일 - 버전 관리 필요
 [[headers]]
   for = "/assets/css/*"
   [headers.values]
-    Cache-Control = "public, max-age=3600"
+    Cache-Control = "no-cache, must-revalidate"
 
-# JS 파일 - 짧은 캐시
+# JS 파일 - 버전 관리 필요
 [[headers]]
   for = "/assets/js/*"
   [headers.values]
-    Cache-Control = "public, max-age=3600"
+    Cache-Control = "no-cache, must-revalidate"
 
-# 리다이렉트 설정 (옵션)
+# 모든 리소스에 대한 기본 설정
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "ALLOWALL"
+    X-Content-Type-Options = "nosniff"
+
+# 리다이렉트 설정
 [[redirects]]
   from = "/"
   to = "/index.html"
   status = 200
+  force = true
+  
+# 카카오톡 접속 시 특별 처리
+[[redirects]]
+  from = "/*"
+  to = "/index.html?t=:splat"
+  status = 200
+  conditions = {User-Agent = ["*KAKAOTALK*"]}
