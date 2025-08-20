@@ -1,104 +1,42 @@
 <!DOCTYPE html>
 <html lang="ko">
   <head>
-    <!-- 최우선 실행: 카카오톡 감지 및 리다이렉트 -->
+    <!-- 카카오톡 캐시 방지 스크립트 (간단한 버전) -->
     <script>
-      (function () {
-        // 카카오톡 인앱 브라우저 감지
-        const isKakao = /KAKAOTALK/i.test(navigator.userAgent);
+      // 카카오톡 인앱 브라우저 감지 및 처리
+      if (/KAKAOTALK/i.test(navigator.userAgent)) {
+        const url = new URL(window.location.href);
+        const kakaoTime = url.searchParams.get('kt');
+        const currentTime = new Date().getTime();
 
-        if (isKakao) {
-          // 현재 URL 파싱
-          const url = new URL(window.location.href);
-          const currentTime = new Date().getTime();
-
-          // 't' 파라미터가 없거나 1분 이상 지난 경우 리다이렉트
-          const existingTime = url.searchParams.get('t');
-          if (!existingTime || currentTime - parseInt(existingTime) > 60000) {
-            // 강제로 새 URL로 리다이렉트
-            url.searchParams.set('t', currentTime);
-            url.searchParams.set('v', '20250820');
-
-            // 즉시 리다이렉트 (현재 페이지 렌더링 방지)
-            document.write('<html><body>Loading...</body></html>');
-            window.location.replace(url.toString());
-            throw new Error('Redirecting...'); // 스크립트 실행 중지
-          }
+        // kt 파라미터가 없거나 5분 이상 지난 경우만 리다이렉트
+        if (!kakaoTime || currentTime - parseInt(kakaoTime) > 300000) {
+          url.searchParams.set('kt', currentTime);
+          window.location.replace(url.toString());
         }
-
-        // 일반 브라우저도 버전 체크
-        const CURRENT_VERSION = '20250820';
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlVersion = urlParams.get('v');
-
-        if (!urlVersion || urlVersion !== CURRENT_VERSION) {
-          urlParams.set('v', CURRENT_VERSION);
-          urlParams.set('t', new Date().getTime());
-          const newUrl = window.location.pathname + '?' + urlParams.toString();
-          window.location.replace(newUrl);
-          throw new Error('Version update...');
-        }
-      })();
+      }
     </script>
 
-    <!-- 캐시 방지 메타 태그 (최대한 강력하게) -->
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- 캐시 방지 메타 태그 -->
     <meta
       http-equiv="Cache-Control"
-      content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0, max-age=0, s-maxage=0"
+      content="no-cache, no-store, must-revalidate"
     />
     <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="-1" />
-    <meta http-equiv="Clear-Site-Data" content="cache" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Expires" content="0" />
 
     <title>i.study VIP 학부모 설명회 예약</title>
 
-    <!-- 동적 버전 관리 CSS -->
-    <script>
-      document.write(
-        '<link rel="stylesheet" href="assets/css/index.css?v=' +
-          new Date().getTime() +
-          '" />'
-      );
-    </script>
-
-    <!-- Supabase -->
+    <!-- Supabase 클라이언트 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+    <!-- CSS 파일 (버전 포함) -->
+    <link rel="stylesheet" href="assets/css/index.css?v=20250820" />
+
     <link rel="icon" href="data:," />
-
-    <!-- 추가 캐시 방지 -->
-    <script>
-      // Service Worker 제거
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker
-          .getRegistrations()
-          .then(function (registrations) {
-            for (let registration of registrations) {
-              registration.unregister();
-            }
-          });
-      }
-
-      // 모든 캐시 삭제
-      if ('caches' in window) {
-        caches.keys().then(function (names) {
-          for (let name of names) {
-            caches.delete(name);
-          }
-        });
-      }
-
-      // localStorage 버전 체크
-      const STORAGE_VERSION = '20250820-v2';
-      const savedVersion = localStorage.getItem('app_version');
-      if (savedVersion !== STORAGE_VERSION) {
-        localStorage.clear();
-        sessionStorage.clear();
-        localStorage.setItem('app_version', STORAGE_VERSION);
-      }
-    </script>
   </head>
   <body>
     <div class="container">
@@ -450,13 +388,7 @@
       </div>
     </div>
 
-    <!-- JavaScript 파일도 동적 버전 관리 -->
-    <script>
-      document.write(
-        '<script src="assets/js/index.js?v=' +
-          new Date().getTime() +
-          '"><\/script>'
-      );
-    </script>
+    <!-- JavaScript 파일 로드 -->
+    <script src="assets/js/index.js?v=20250820"></script>
   </body>
 </html>
