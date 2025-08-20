@@ -543,6 +543,7 @@ body {
   box-shadow: var(--shadow);
   overflow: hidden;
   border: 1px solid var(--gray-200);
+  margin-bottom: 24px;
 }
 
 /* Desktop Table */
@@ -1234,4 +1235,432 @@ body {
   .data-table {
     font-size: 10pt;
   }
+}
+/* ===== 전환율 분석 (기존 스타일과 통일) ===== */
+.stats-container {
+  background: white;
+  border-radius: var(--border-radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--gray-200);
+}
+
+.funnel-container {
+  background: var(--gray-50);
+  border-radius: var(--border-radius-sm);
+  padding: 24px;
+  margin-top: 20px;
+  overflow-x: auto;
+  border: 1px solid var(--gray-200);
+}
+
+.funnel-flow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 800px;
+  padding: 20px 0;
+}
+
+.funnel-node {
+  flex: 0 0 auto;
+  width: 110px;
+  padding: 16px 8px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-sm);
+  text-align: center;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.funnel-node:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-color);
+}
+
+/* Primary 노드 스타일 */
+.funnel-node.primary {
+  background: var(--primary-gradient);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.funnel-node.primary:hover {
+  background: var(--primary-color);
+  border-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.funnel-label {
+  font-size: 12px;
+  color: var(--gray-600);
+  margin-bottom: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.funnel-node.primary .funnel-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.funnel-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 4px;
+}
+
+.funnel-node.primary .funnel-value {
+  color: white;
+}
+
+.funnel-percent {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--info-color);
+}
+
+.funnel-node.primary .funnel-percent {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 화살표 스타일 */
+.funnel-arrow {
+  flex: 0 0 auto;
+  width: 60px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.arrow-line {
+  width: 100%;
+  height: 2px;
+  background: var(--gray-200);
+  position: relative;
+}
+
+.arrow-line::after {
+  content: '→';
+  position: absolute;
+  right: -10px;
+  top: -10px;
+  color: var(--gray-400);
+  font-size: 18px;
+}
+
+.arrow-rate {
+  position: absolute;
+  top: -20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger-color);
+  white-space: nowrap;
+}
+
+/* 전환율 통계 카드 */
+.conversion-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.conversion-stats .stat-card {
+  background: white;
+  padding: 16px;
+  border-radius: var(--border-radius-sm);
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200);
+  transition: all var(--transition);
+}
+
+.conversion-stats .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.conversion-stats .stat-card.primary {
+  background: var(--primary-gradient);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.conversion-stats .stat-card.primary:hover {
+  background: var(--primary-color);
+  border-color: var(--primary-dark);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--gray-600);
+  margin-bottom: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.conversion-stats .stat-card.primary .stat-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 4px;
+  line-height: 1;
+}
+
+.conversion-stats .stat-card.primary .stat-value {
+  color: white;
+}
+
+.stat-sublabel {
+  font-size: 11px;
+  color: var(--gray-500);
+  margin-top: 4px;
+}
+
+.conversion-stats .stat-card.primary .stat-sublabel {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 기간 선택 드롭다운 */
+.funnel-period {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.funnel-period select {
+  padding: 6px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius-sm);
+  font-size: 13px;
+  background: white;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.funnel-period select:hover {
+  border-color: var(--primary-color);
+}
+
+.funnel-period select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
+}
+
+/* ===== 실시간 체크인 섹션 ===== */
+.checkin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.checkin-stats .stat-card {
+  background: white;
+  padding: 16px;
+  border-radius: var(--border-radius-sm);
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200);
+  transition: all var(--transition);
+}
+
+.checkin-stats .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.checkin-list {
+  background: var(--gray-50);
+  border-radius: var(--border-radius);
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--gray-200);
+}
+
+.checkin-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: white;
+  border-radius: var(--border-radius-sm);
+  margin-bottom: 8px;
+  transition: all var(--transition);
+  border: 1px solid var(--gray-200);
+}
+
+.checkin-item:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary-color);
+}
+
+.checkin-item:last-child {
+  margin-bottom: 0;
+}
+
+.checkin-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.checkin-time {
+  font-size: 12px;
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+.checkin-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-900);
+}
+
+.checkin-status {
+  font-size: 12px;
+  padding: 4px 12px;
+  background: var(--success-color);
+  color: white;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--gray-500);
+  font-size: 14px;
+}
+
+/* QR 생성 버튼 (기존 스타일 활용) */
+.btn-primary {
+  padding: 8px 16px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .funnel-container {
+    padding: 16px;
+  }
+
+  .funnel-flow {
+    min-width: auto;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .funnel-node {
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .funnel-arrow {
+    width: auto;
+    height: 30px;
+    transform: rotate(90deg);
+  }
+
+  .arrow-line::after {
+    content: '↓';
+    right: auto;
+    top: auto;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .arrow-rate {
+    transform: rotate(-90deg);
+    top: 50%;
+    left: -30px;
+  }
+
+  .conversion-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .conversion-stats .stat-card {
+    padding: 12px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .checkin-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 애니메이션 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.funnel-node {
+  animation: fadeInUp 0.5s ease-out backwards;
+}
+
+.funnel-node:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.funnel-node:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.funnel-node:nth-child(5) {
+  animation-delay: 0.3s;
+}
+.funnel-node:nth-child(7) {
+  animation-delay: 0.4s;
+}
+.funnel-node:nth-child(9) {
+  animation-delay: 0.5s;
+}
+.funnel-node:nth-child(11) {
+  animation-delay: 0.6s;
 }

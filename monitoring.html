@@ -337,6 +337,129 @@
           <p>표시할 데이터가 없습니다</p>
         </div>
       </section>
+
+      <!-- 전환율 분석 섹션 -->
+      <section class="stats-section">
+        <div class="seminar-stats">
+          <div class="section-header">
+            <h2 class="section-title">전환율 분석</h2>
+            <div class="funnel-period">
+              <select id="funnelPeriod" onchange="updateFunnelPeriod()">
+                <option value="today">오늘</option>
+                <option value="week" selected>최근 7일</option>
+                <option value="month">최근 30일</option>
+                <option value="all">전체</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 가로형 퍼널 -->
+          <div class="funnel-container">
+            <div class="funnel-flow">
+              <div class="funnel-node">
+                <div class="funnel-label">페이지 방문</div>
+                <div class="funnel-value" id="visitCount">-</div>
+                <div class="funnel-percent">100%</div>
+              </div>
+
+              <div class="funnel-arrow">
+                <div class="arrow-line"></div>
+                <div class="arrow-rate" id="visitToSelectRate">50.0%</div>
+              </div>
+
+              <div class="funnel-node">
+                <div class="funnel-label">설명회 선택</div>
+                <div class="funnel-value" id="selectCount">-</div>
+                <div class="funnel-percent" id="selectRate">50.0%</div>
+              </div>
+
+              <div class="funnel-arrow">
+                <div class="arrow-line"></div>
+                <div class="arrow-rate" id="selectToPhoneRate">40.0%</div>
+              </div>
+
+              <div class="funnel-node">
+                <div class="funnel-label">정보 입력</div>
+                <div class="funnel-value" id="phoneCount">-</div>
+                <div class="funnel-percent" id="phoneRate">20.0%</div>
+              </div>
+
+              <div class="funnel-arrow">
+                <div class="arrow-line"></div>
+                <div class="arrow-rate" id="phoneToReservationRate">50.0%</div>
+              </div>
+
+              <div class="funnel-node">
+                <div class="funnel-label">예약 완료</div>
+                <div class="funnel-value" id="reservationCount">-</div>
+                <div class="funnel-percent" id="reservationRate">10.0%</div>
+              </div>
+
+              <div class="funnel-arrow">
+                <div class="arrow-line"></div>
+                <div class="arrow-rate" id="reservationToAttendanceRate">
+                  0.0%
+                </div>
+              </div>
+
+              <div class="funnel-node">
+                <div class="funnel-label">설명회 참석</div>
+                <div class="funnel-value" id="attendanceCount">-</div>
+                <div class="funnel-percent" id="attendanceRate">0.0%</div>
+              </div>
+
+              <div class="funnel-arrow">
+                <div class="arrow-line"></div>
+                <div class="arrow-rate" id="attendanceToConsultingRate">0%</div>
+              </div>
+
+              <div class="funnel-node primary">
+                <div class="funnel-label">컨설팅 예약</div>
+                <div class="funnel-value" id="consultingCount">-</div>
+                <div class="funnel-percent" id="consultingRate">0.0%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 핵심 지표 카드 -->
+      <section class="stats-section">
+        <div class="total-stats">
+          <div class="mini-stat-card">
+            <span class="mini-stat-value" id="bookingConversion">10.0%</span>
+            <span class="mini-stat-label">예약 전환율</span>
+          </div>
+          <div class="mini-stat-card">
+            <span class="mini-stat-value" id="attendanceConversion">0.0%</span>
+            <span class="mini-stat-label">참석률</span>
+          </div>
+          <div class="mini-stat-card">
+            <span class="mini-stat-value" id="consultingConversion">0.0%</span>
+            <span class="mini-stat-label">컨설팅 전환율</span>
+          </div>
+          <div class="mini-stat-card success">
+            <span class="mini-stat-value" id="finalConversion">0.00%</span>
+            <span class="mini-stat-label">최종 전환율</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 실시간 체크인 섹션 -->
+      <section class="stats-section">
+        <div class="seminar-stats">
+          <div class="section-header">
+            <h2 class="section-title">실시간 체크인</h2>
+            <button class="btn btn-primary" onclick="openQRGenerator()">
+              QR 코드 생성
+            </button>
+          </div>
+
+          <div class="checkin-list" id="recentCheckins">
+            <!-- 최근 체크인 목록 -->
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- 드롭다운 메뉴 -->
