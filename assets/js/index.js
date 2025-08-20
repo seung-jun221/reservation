@@ -15,6 +15,22 @@ let isWaitlistReservation = false;
 // 시도 횟수 추적
 const attemptTracker = new Map();
 
+// 페이지 강제 새로고침 (캐시된 경우)
+if (performance.navigation.type === 2) {
+  location.reload(true);
+}
+
+// 버전 체크 (옵션)
+const APP_VERSION = '20250820';
+const savedVersion = localStorage.getItem('app_version');
+if (savedVersion !== APP_VERSION) {
+  localStorage.clear();
+  localStorage.setItem('app_version', APP_VERSION);
+  if (savedVersion) {
+    location.reload(true);
+  }
+}
+
 // ===== 캐시 관리 =====
 const CACHE_KEY = 'seminar_schedule';
 const CACHE_DURATION = 5 * 60 * 1000; // 5분

@@ -1,0 +1,25 @@
+# 모든 HTML 파일 캐시 방지
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+# CSS 파일 - 짧은 캐시
+[[headers]]
+  for = "/assets/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+# JS 파일 - 짧은 캐시
+[[headers]]
+  for = "/assets/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+# 리다이렉트 설정 (옵션)
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200

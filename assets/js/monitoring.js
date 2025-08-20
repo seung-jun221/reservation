@@ -21,6 +21,22 @@ let currentFilters = {
 let isLoading = false;
 let realtimeSubscription = null;
 
+// 페이지 강제 새로고침 (캐시된 경우)
+if (performance.navigation.type === 2) {
+  location.reload(true);
+}
+
+// 버전 체크 (옵션)
+const APP_VERSION = '20250820';
+const savedVersion = localStorage.getItem('app_version');
+if (savedVersion !== APP_VERSION) {
+  localStorage.clear();
+  localStorage.setItem('app_version', APP_VERSION);
+  if (savedVersion) {
+    location.reload(true);
+  }
+}
+
 // ===== 페이지 초기화 =====
 document.addEventListener('DOMContentLoaded', async function () {
   console.log('모니터링 페이지 초기화');
