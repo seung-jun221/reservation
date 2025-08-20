@@ -9,241 +9,337 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- CSS 파일 -->
-    <link rel="stylesheet" href="assets/css/monitoring.css" />
+    <link rel="stylesheet" href="assets/css/monitoring-v2.css" />
 
     <!-- 파비콘 -->
     <link rel="icon" href="data:," />
   </head>
   <body>
     <!-- 헤더 -->
-    <div class="header">
+    <header class="header">
       <div class="header-content">
-        <h1>VIP 설명회 예약 모니터링</h1>
-        <div class="header-info">
+        <div class="header-left">
+          <h1 class="header-title">VIP 설명회 모니터링</h1>
           <span class="connection-status" id="connectionStatus">
-            <span class="status-dot"></span>
-            <span class="status-text">연결중...</span>
+            <span class="status-dot connected"></span>
+            <span class="status-text">실시간</span>
           </span>
-          <span class="last-update" id="lastUpdate">마지막 업데이트: -</span>
+        </div>
+        <div class="header-right">
+          <button class="icon-btn" onclick="refreshData()" title="새로고침">
+            <span class="refresh-icon">↻</span>
+          </button>
         </div>
       </div>
-    </div>
+    </header>
 
-    <div class="container">
-      <!-- 통계 카드 -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-number" id="totalReservations">0</div>
-          <div class="stat-label">전체 예약</div>
+    <main class="main-container">
+      <!-- 통계 섹션 -->
+      <section class="stats-section">
+        <!-- 전체 통계 미니 카드 -->
+        <div class="total-stats">
+          <div class="mini-stat-card">
+            <span class="mini-stat-value" id="totalAll">0</span>
+            <span class="mini-stat-label">전체</span>
+          </div>
+          <div class="mini-stat-card success">
+            <span class="mini-stat-value" id="totalAttended">0</span>
+            <span class="mini-stat-label">참석</span>
+          </div>
+          <div class="mini-stat-card pending">
+            <span class="mini-stat-value" id="totalPending">0</span>
+            <span class="mini-stat-label">대기</span>
+          </div>
+          <div class="mini-stat-card cancelled">
+            <span class="mini-stat-value" id="totalCancelled">0</span>
+            <span class="mini-stat-label">취소</span>
+          </div>
         </div>
-        <div class="stat-card success">
-          <div class="stat-number" id="totalAttended">0</div>
-          <div class="stat-label">참석 확정</div>
+
+        <!-- 설명회별 현황 -->
+        <div class="seminar-stats">
+          <div class="section-header">
+            <h2 class="section-title">설명회별 현황</h2>
+            <div class="view-toggle">
+              <button
+                class="toggle-btn active"
+                onclick="toggleStatsView('chart')"
+              >
+                차트
+              </button>
+              <button class="toggle-btn" onclick="toggleStatsView('list')">
+                리스트
+              </button>
+            </div>
+          </div>
+
+          <!-- 차트 뷰 -->
+          <div class="stats-view" id="chartView">
+            <div class="seminar-cards" id="seminarCards">
+              <!-- 동적으로 생성됨 -->
+            </div>
+          </div>
+
+          <!-- 리스트 뷰 -->
+          <div class="stats-view hidden" id="listView">
+            <div class="seminar-list" id="seminarList">
+              <!-- 동적으로 생성됨 -->
+            </div>
+          </div>
         </div>
-        <div class="stat-card warning">
-          <div class="stat-number" id="totalPending">0</div>
-          <div class="stat-label">참석 대기</div>
-        </div>
-        <div class="stat-card info">
-          <div class="stat-number" id="totalWaitlist">0</div>
-          <div class="stat-label">대기예약</div>
-        </div>
-      </div>
+      </section>
 
       <!-- 검색/필터 섹션 -->
-      <div class="search-section">
-        <div class="search-controls">
-          <div class="search-group">
-            <label class="search-label">설명회 선택</label>
-            <select class="search-input" id="filterSeminar">
-              <option value="">전체 설명회</option>
-              <!-- 동적으로 추가됨 -->
-            </select>
-          </div>
-          <div class="search-group">
-            <label class="search-label">상태</label>
-            <select class="search-input" id="filterStatus">
-              <option value="">전체 상태</option>
-              <option value="예약">예약</option>
-              <option value="참석">참석</option>
-              <option value="불참">불참</option>
-              <option value="취소">취소</option>
-              <option value="대기">대기예약</option>
-            </select>
-          </div>
-          <div class="search-group">
-            <label class="search-label">학생명</label>
-            <input
-              type="text"
-              class="search-input"
-              id="searchStudentName"
-              placeholder="학생명 검색"
-            />
-          </div>
-          <div class="search-group">
-            <label class="search-label">전화번호</label>
-            <input
-              type="text"
-              class="search-input"
-              id="searchPhone"
-              placeholder="전화번호 검색"
-            />
-          </div>
-          <div class="search-group">
-            <label class="search-label">학교</label>
-            <input
-              type="text"
-              class="search-input"
-              id="searchSchool"
-              placeholder="학교명 검색"
-            />
+      <section class="filter-section">
+        <div class="filter-header">
+          <h2 class="section-title">예약 목록</h2>
+          <div class="filter-actions">
+            <button class="filter-toggle-btn" onclick="toggleFilters()">
+              <span class="filter-icon">⚙</span>
+              <span class="filter-text">필터</span>
+            </button>
           </div>
         </div>
-        <div class="search-actions">
-          <button class="btn btn-primary" onclick="applyFilters()">검색</button>
-          <button class="btn btn-secondary" onclick="resetFilters()">
-            초기화
+
+        <!-- 필터 패널 -->
+        <div class="filter-panel" id="filterPanel">
+          <div class="filter-row">
+            <div class="filter-group">
+              <select class="filter-select" id="filterSeminar">
+                <option value="">전체 설명회</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <select class="filter-select" id="filterStatus">
+                <option value="">전체 상태</option>
+                <option value="예약">예약</option>
+                <option value="참석">참석</option>
+                <option value="불참">불참</option>
+                <option value="취소">취소</option>
+                <option value="대기">대기예약</option>
+              </select>
+            </div>
+            <div class="filter-group search-group">
+              <input
+                type="text"
+                class="filter-input"
+                id="searchStudent"
+                placeholder="🔍 학생명 검색"
+              />
+            </div>
+            <div class="filter-group desktop-only">
+              <input
+                type="text"
+                class="filter-input"
+                id="searchPhone"
+                placeholder="전화번호"
+              />
+            </div>
+            <div class="filter-group desktop-only">
+              <input
+                type="text"
+                class="filter-input"
+                id="searchSchool"
+                placeholder="학교명"
+              />
+            </div>
+            <div class="filter-group filter-buttons">
+              <button class="btn btn-primary" onclick="applyFilters()">
+                검색
+              </button>
+              <button class="btn btn-secondary" onclick="resetFilters()">
+                초기화
+              </button>
+              <button
+                class="btn btn-export desktop-only"
+                onclick="exportToExcel()"
+              >
+                <span>📥</span> 엑셀
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 빠른 필터 (모바일) -->
+        <div class="quick-filters mobile-only">
+          <button class="quick-filter-btn active" onclick="quickFilter('all')">
+            전체
           </button>
-          <button class="btn btn-success" onclick="exportToExcel()">
-            엑셀 다운로드
+          <button class="quick-filter-btn" onclick="quickFilter('reserved')">
+            예약
           </button>
-          <button class="btn btn-refresh" onclick="refreshData()">
-            <span id="refreshIcon">🔄</span> 새로고침
+          <button class="quick-filter-btn" onclick="quickFilter('attended')">
+            참석
+          </button>
+          <button class="quick-filter-btn" onclick="quickFilter('waitlist')">
+            대기
+          </button>
+        </div>
+      </section>
+
+      <!-- 선택 액션 바 -->
+      <div class="selection-bar hidden" id="selectionBar">
+        <div class="selection-info">
+          <span id="selectedCount">0</span>개 선택
+        </div>
+        <div class="selection-actions">
+          <button class="action-btn success" onclick="bulkUpdate('참석')">
+            참석
+          </button>
+          <button class="action-btn danger" onclick="bulkUpdate('불참')">
+            불참
+          </button>
+          <button class="action-btn warning" onclick="bulkUpdate('취소')">
+            취소
+          </button>
+          <button class="action-btn secondary" onclick="clearSelection()">
+            해제
           </button>
         </div>
       </div>
 
-      <!-- 선택된 항목 액션 바 (기본 숨김) -->
-      <div class="bulk-actions hidden" id="bulkActions">
-        <div class="bulk-info"><span id="selectedCount">0</span>개 선택됨</div>
-        <div class="bulk-buttons">
-          <button
-            class="btn btn-sm btn-success"
-            onclick="bulkUpdateStatus('참석')"
-          >
-            일괄 참석
-          </button>
-          <button
-            class="btn btn-sm btn-danger"
-            onclick="bulkUpdateStatus('불참')"
-          >
-            일괄 불참
-          </button>
-          <button
-            class="btn btn-sm btn-warning"
-            onclick="bulkUpdateStatus('취소')"
-          >
-            일괄 취소
-          </button>
-          <button class="btn btn-sm btn-secondary" onclick="clearSelection()">
-            선택 해제
-          </button>
-        </div>
-      </div>
-
-      <!-- 데이터 테이블 -->
-      <div class="table-section">
-        <div class="table-header">
-          <h3>예약 목록</h3>
-          <div class="table-info">
-            <span id="recordInfo">전체 0건</span>
-          </div>
-        </div>
-
-        <div class="table-container">
-          <table class="data-table" id="dataTable">
+      <!-- 데이터 테이블 섹션 -->
+      <section class="table-section">
+        <!-- PC 테이블 -->
+        <div class="desktop-table desktop-only">
+          <table class="data-table">
             <thead>
               <tr>
-                <th class="checkbox-column">
+                <th class="checkbox-col">
                   <input
                     type="checkbox"
                     id="selectAll"
                     onchange="toggleSelectAll()"
                   />
                 </th>
-                <th>번호</th>
-                <th>예약번호</th>
-                <th>설명회</th>
-                <th>학생명</th>
-                <th>연락처</th>
-                <th>학교</th>
-                <th>학년</th>
-                <th>수학 선행</th>
-                <th>예약일시</th>
-                <th>상태</th>
-                <th>참석여부</th>
-                <th>액션</th>
+                <th class="number-col">번호</th>
+                <th class="reservation-col">예약번호</th>
+                <th class="seminar-col">설명회</th>
+                <th class="name-col">학생명</th>
+                <th class="phone-col">연락처</th>
+                <th class="school-col">학교</th>
+                <th class="grade-col">학년</th>
+                <th class="math-col">수학선행</th>
+                <th class="date-col">예약일시</th>
+                <th class="status-col">상태</th>
+                <th class="action-col">액션</th>
               </tr>
             </thead>
-            <tbody id="tableBody">
-              <!-- 동적으로 추가됨 -->
+            <tbody id="desktopTableBody">
+              <!-- 동적 생성 -->
             </tbody>
           </table>
-
-          <!-- 로딩 표시 -->
-          <div class="loading-container hidden" id="loadingContainer">
-            <div class="spinner"></div>
-            <p>데이터를 불러오는 중...</p>
-          </div>
-
-          <!-- 데이터 없음 표시 -->
-          <div class="no-data hidden" id="noDataContainer">
-            <p>표시할 데이터가 없습니다.</p>
-          </div>
         </div>
+
+        <!-- 모바일 리스트 -->
+        <div class="mobile-list mobile-only" id="mobileList">
+          <!-- 동적 생성 -->
+        </div>
+
+        <!-- 로딩 상태 -->
+        <div class="loading-state hidden" id="loadingState">
+          <div class="loading-spinner"></div>
+          <p>데이터를 불러오는 중...</p>
+        </div>
+
+        <!-- 빈 상태 -->
+        <div class="empty-state hidden" id="emptyState">
+          <div class="empty-icon">📋</div>
+          <p>표시할 데이터가 없습니다</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- 드롭다운 메뉴 -->
+    <div class="dropdown-menu hidden" id="dropdownMenu">
+      <button class="dropdown-item" onclick="handleDropdownAction('edit')">
+        <span class="dropdown-icon">✏️</span>
+        <span>수정</span>
+      </button>
+      <button class="dropdown-item" onclick="handleDropdownAction('attend')">
+        <span class="dropdown-icon">✅</span>
+        <span>참석 처리</span>
+      </button>
+      <button class="dropdown-item" onclick="handleDropdownAction('absent')">
+        <span class="dropdown-icon">❌</span>
+        <span>불참 처리</span>
+      </button>
+      <button class="dropdown-item" onclick="handleDropdownAction('cancel')">
+        <span class="dropdown-icon">🚫</span>
+        <span>취소 처리</span>
+      </button>
+    </div>
+
+    <!-- 모바일 플로팅 버튼 -->
+    <div class="fab-container mobile-only">
+      <button class="fab" onclick="toggleFabMenu()">
+        <span class="fab-icon">+</span>
+      </button>
+      <div class="fab-menu hidden" id="fabMenu">
+        <button class="fab-menu-item" onclick="exportToExcel()">
+          <span>📥</span> 엑셀 다운로드
+        </button>
+        <button class="fab-menu-item" onclick="showBulkActions()">
+          <span>✓</span> 일괄 선택
+        </button>
       </div>
     </div>
 
     <!-- 토스트 메시지 -->
-    <div class="toast" id="toast"></div>
+    <div class="toast-container" id="toastContainer"></div>
 
     <!-- 편집 모달 -->
     <div class="modal hidden" id="editModal">
-      <div class="modal-overlay" onclick="closeEditModal()"></div>
+      <div class="modal-backdrop" onclick="closeEditModal()"></div>
       <div class="modal-content">
         <div class="modal-header">
-          <h3>예약 정보 수정</h3>
+          <h3 class="modal-title">예약 정보 수정</h3>
           <button class="modal-close" onclick="closeEditModal()">×</button>
         </div>
         <div class="modal-body">
           <form id="editForm">
             <input type="hidden" id="editId" />
             <div class="form-group">
-              <label>학생명</label>
-              <input type="text" id="editStudentName" required />
+              <label class="form-label">학생명</label>
+              <input
+                type="text"
+                class="form-input"
+                id="editStudentName"
+                required
+              />
             </div>
             <div class="form-group">
-              <label>연락처</label>
-              <input type="text" id="editPhone" required />
+              <label class="form-label">연락처</label>
+              <input type="text" class="form-input" id="editPhone" required />
             </div>
             <div class="form-group">
-              <label>학교</label>
-              <input type="text" id="editSchool" required />
+              <label class="form-label">학교</label>
+              <input type="text" class="form-input" id="editSchool" required />
             </div>
             <div class="form-group">
-              <label>학년</label>
-              <select id="editGrade" required>
-                <option value="초1">초등학교 1학년</option>
-                <option value="초2">초등학교 2학년</option>
-                <option value="초3">초등학교 3학년</option>
-                <option value="초4">초등학교 4학년</option>
-                <option value="초5">초등학교 5학년</option>
-                <option value="초6">초등학교 6학년</option>
-                <option value="중1">중학교 1학년</option>
-                <option value="중2">중학교 2학년</option>
-                <option value="중3">중학교 3학년</option>
-                <option value="고1">고등학교 1학년</option>
-                <option value="고2">고등학교 2학년</option>
-                <option value="고3">고등학교 3학년</option>
+              <label class="form-label">학년</label>
+              <select class="form-input" id="editGrade" required>
+                <option value="초1">초1</option>
+                <option value="초2">초2</option>
+                <option value="초3">초3</option>
+                <option value="초4">초4</option>
+                <option value="초5">초5</option>
+                <option value="초6">초6</option>
+                <option value="중1">중1</option>
+                <option value="중2">중2</option>
+                <option value="중3">중3</option>
+                <option value="고1">고1</option>
+                <option value="고2">고2</option>
+                <option value="고3">고3</option>
               </select>
             </div>
             <div class="form-group">
-              <label>수학 선행정도</label>
-              <input type="text" id="editMathLevel" />
+              <label class="form-label">수학 선행정도</label>
+              <input type="text" class="form-input" id="editMathLevel" />
             </div>
             <div class="form-group">
-              <label>메모</label>
-              <textarea id="editNotes" rows="3"></textarea>
+              <label class="form-label">메모</label>
+              <textarea class="form-input" id="editNotes" rows="3"></textarea>
             </div>
           </form>
         </div>
@@ -256,8 +352,7 @@
       </div>
     </div>
 
-    <!-- JavaScript 파일들 -->
-    <script src="assets/js/supabase-config.js"></script>
-    <script src="assets/js/monitoring.js"></script>
+    <!-- JavaScript -->
+    <script src="assets/js/monitoring-v2.js"></script>
   </body>
 </html>
