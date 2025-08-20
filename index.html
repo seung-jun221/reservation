@@ -3,16 +3,37 @@
   <!-- Supabase 클라이언트 추가 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 최우선 실행 스크립트 -->
+    <script>
+      // 버전 체크 및 강제 리다이렉트
+      (function () {
+        const CURRENT_VERSION = '20250820';
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlVersion = urlParams.get('v');
 
-    <!-- 캐시 방지 메타 태그 추가 -->
+        // 버전 파라미터가 없거나 오래된 경우 강제 리다이렉트
+        if (!urlVersion || urlVersion !== CURRENT_VERSION) {
+          // 기존 URL 파라미터 유지하면서 버전 추가
+          urlParams.set('v', CURRENT_VERSION);
+          const newUrl = window.location.pathname + '?' + urlParams.toString();
+
+          // 즉시 리다이렉트 (캐시 무시)
+          window.location.replace(newUrl);
+          return;
+        }
+      })();
+    </script>
+
+    <!-- 캐시 방지 메타 태그 -->
     <meta
       http-equiv="Cache-Control"
       content="no-cache, no-store, must-revalidate"
     />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>i.study VIP 학부모 설명회 예약</title>
 
