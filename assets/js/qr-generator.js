@@ -82,9 +82,43 @@ async function handleSeminarChange(event) {
 
     // 통계 자동 새로고침 시작
     startStatsRefresh(seminarId);
+
+    // 미리보기 버튼 활성화 및 안내 문구 숨기기
+    enablePreviewButton();
   } catch (error) {
     console.error('설명회 정보 로드 실패:', error);
     showToast('설명회 정보를 불러올 수 없습니다.', 'error');
+  }
+}
+
+// ===== 미리보기 버튼 활성화 =====
+function enablePreviewButton() {
+  const previewBtn = document.getElementById('previewBtn');
+  const previewHint = document.getElementById('previewHint');
+
+  if (previewBtn) {
+    previewBtn.disabled = false;
+    previewBtn.innerHTML = '📱 체크인 페이지 미리보기';
+  }
+
+  if (previewHint) {
+    previewHint.style.display = 'none';
+  }
+}
+
+// ===== 미리보기 버튼 비활성화 =====
+function disablePreviewButton() {
+  const previewBtn = document.getElementById('previewBtn');
+  const previewHint = document.getElementById('previewHint');
+
+  if (previewBtn) {
+    previewBtn.disabled = true;
+    previewBtn.innerHTML = '📱 체크인 페이지 미리보기';
+  }
+
+  if (previewHint) {
+    previewHint.style.display = 'block';
+    previewHint.textContent = '먼저 상단에서 설명회를 선택해주세요';
   }
 }
 
@@ -282,11 +316,14 @@ function refreshStats() {
 
 // ===== 체크인 페이지 미리보기 =====
 function openCheckinPage() {
-  if (selectedSeminar) {
-    window.open(`/checkin.html?sid=${selectedSeminar.id}`, '_blank');
-  } else {
-    window.open('/checkin.html', '_blank');
+  if (!selectedSeminar) {
+    showToast('먼저 설명회를 선택해주세요', 'warning');
+    return;
   }
+
+  // 선택된 설명회 ID와 함께 체크인 페이지 열기
+  // test=true 파라미터 추가하여 날짜 체크 스킵
+  window.open(`/checkin.html?sid=${selectedSeminar.id}&test=true`, '_blank');
 }
 
 // ===== 화면 초기화 =====
@@ -313,6 +350,9 @@ function resetDisplay() {
     clearInterval(statsInterval);
     statsInterval = null;
   }
+
+  // 미리보기 버튼 비활성화
+  disablePreviewButton();
 }
 
 // ===== 유틸리티 함수 =====

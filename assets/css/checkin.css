@@ -6,6 +6,12 @@
   --primary-light: #34495e;
   --primary-gradient: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
 
+  /* Gold Colors - 프리미엄 포인트 */
+  --gold-color: #d4af37;
+  --gold-light: #f4e4bc;
+  --gold-dark: #b8941f;
+  --gold-gradient: linear-gradient(135deg, #d4af37 0%, #f4e4bc 100%);
+
   /* Status Colors */
   --success-color: #27ae60;
   --warning-color: #f39c12;
@@ -274,157 +280,238 @@ body {
   width: 100%;
 }
 
-.btn-highlight {
-  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-  animation: pulse 2s infinite;
-}
+/* ===== 체크인 완료 화면 - 고급스러운 디자인 ===== */
 
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(39, 174, 96, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(39, 174, 96, 0);
-  }
-}
-
-/* ===== Success State ===== */
-.success-message {
+/* 완료 헤더 */
+.complete-header {
   text-align: center;
+  padding: 20px 0 30px;
+  border-bottom: 1px solid var(--gray-200);
   margin-bottom: 30px;
 }
 
-.success-icon {
-  font-size: 60px;
-  margin-bottom: 16px;
-}
-
-.success-title {
+.complete-title {
   font-size: 24px;
   font-weight: 700;
-  color: var(--success-color);
-  margin-bottom: 8px;
-}
-
-.success-name {
-  font-size: 18px;
-  color: var(--gray-700);
-  font-weight: 500;
-}
-
-/* ===== Benefit Card ===== */
-.benefit-card {
-  background: linear-gradient(135deg, #f6f9fc 0%, #e3f2fd 100%);
-  border: 2px solid var(--info-color);
-  border-radius: var(--border-radius);
-  padding: 24px;
-  margin: 24px 0;
-}
-
-.benefit-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.benefit-badge {
-  background: var(--warning-color);
-  color: white;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.benefit-timer {
-  color: var(--danger-color);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.benefit-title {
-  font-size: 18px;
-  font-weight: 700;
   color: var(--gray-900);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
 }
 
-.benefit-list {
-  list-style: none;
+.attendee-name {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--gray-700);
   margin-bottom: 20px;
 }
 
-.benefit-list li {
-  padding: 8px 0;
+.brand-message {
   font-size: 14px;
-  color: var(--gray-700);
+  color: var(--gray-600);
+  font-style: italic;
+  margin-bottom: 8px;
+  letter-spacing: -0.3px;
 }
 
-/* ===== Later Options ===== */
-.later-options {
-  background: var(--gray-50);
-  border-radius: var(--border-radius);
-  padding: 20px;
-  margin-top: 24px;
+.brand-name {
+  font-size: 12px;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 500;
+}
+
+/* 컨설팅 혜택 섹션 */
+.consulting-benefit {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e8ecef 100%);
+  border-radius: var(--border-radius-lg);
+  padding: 30px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.consulting-benefit::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--primary-color) 0%,
+    var(--info-color) 100%
+  );
+}
+
+.benefit-badge {
+  display: inline-block;
+  background: var(--gold-gradient);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+}
+
+.benefit-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gray-900);
+  line-height: 1.4;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.benefit-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+}
+
+.benefit-features li {
+  position: relative;
+  padding: 10px 0 10px 28px;
+  color: var(--gray-700);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.benefit-features li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--gold-color);
+  font-weight: 700;
+  font-size: 16px;
+  text-shadow: 0 1px 3px rgba(212, 175, 55, 0.3);
+}
+
+/* 타이머 */
+.timer-container {
+  background: white;
+  border-radius: var(--border-radius-sm);
+  padding: 12px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.timer-label {
+  font-size: 13px;
+  color: var(--gray-600);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.timer-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gold-color);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(212, 175, 55, 0.2);
+}
+
+/* 컨설팅 예약 버튼 */
+.btn-consulting {
+  width: 100%;
+  padding: 18px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(
+    135deg,
+    var(--primary-color) 0%,
+    var(--primary-dark) 100%
+  );
+  border: none;
+  color: white;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: 0 4px 16px rgba(44, 62, 80, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-consulting::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn-consulting:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(44, 62, 80, 0.3);
+  border: 2px solid var(--gold-color);
+}
+
+.btn-consulting:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* 나중에 예약 섹션 */
+.later-section {
+  text-align: center;
+  padding: 24px 0;
+  border-top: 1px solid var(--gray-200);
 }
 
 .later-title {
   font-size: 14px;
   color: var(--gray-600);
-  text-align: center;
   margin-bottom: 16px;
 }
 
-.share-buttons {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+.btn-copy {
+  padding: 12px 32px;
+  margin-bottom: 16px;
 }
 
-.share-buttons .btn {
-  flex: 1;
-}
-
-/* ===== Access Code ===== */
-.access-code {
-  background: white;
-  border: 2px dashed var(--gray-300);
-  border-radius: var(--border-radius-sm);
-  padding: 16px;
-  text-align: center;
-}
-
-.code-label {
-  font-size: 12px;
-  color: var(--gray-600);
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.code-display {
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--primary-color);
-  letter-spacing: 4px;
-  margin: 8px 0;
-}
-
-.code-hint {
-  font-size: 12px;
+.copy-guide {
+  font-size: 13px;
   color: var(--gray-500);
+  line-height: 1.5;
 }
 
-/* ===== Bottom Actions ===== */
-.bottom-actions {
-  margin-top: 24px;
+.copy-guide p {
+  margin: 0;
+}
+
+/* 푸터 액션 */
+.footer-action {
   text-align: center;
+  padding-top: 16px;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--gray-500);
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 8px 16px;
+  transition: color var(--transition);
+}
+
+.btn-text:hover {
+  color: var(--gray-700);
 }
 
 /* ===== Error State ===== */
@@ -434,7 +521,8 @@ body {
 }
 
 .error-icon {
-  font-size: 60px;
+  font-size: 48px;
+  color: var(--warning-color);
   margin-bottom: 16px;
 }
 
@@ -458,6 +546,10 @@ body {
   margin-top: 20px;
   font-size: 13px;
   color: var(--gray-600);
+}
+
+.help-text p {
+  margin: 0;
 }
 
 .help-link {
@@ -577,6 +669,30 @@ body {
   display: none !important;
 }
 
+/* ===== 애니메이션 추가 ===== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#completeStep:not(.hidden) .complete-header {
+  animation: fadeInUp 0.6s ease;
+}
+
+#completeStep:not(.hidden) .consulting-benefit {
+  animation: fadeInUp 0.6s ease 0.2s backwards;
+}
+
+#completeStep:not(.hidden) .later-section {
+  animation: fadeInUp 0.6s ease 0.4s backwards;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .container {
@@ -600,8 +716,24 @@ body {
     width: 80px;
   }
 
-  .code-display {
-    font-size: 28px;
+  .complete-title {
+    font-size: 20px;
+  }
+
+  .attendee-name {
+    font-size: 16px;
+  }
+
+  .benefit-title {
+    font-size: 18px;
+  }
+
+  .consulting-benefit {
+    padding: 24px 20px;
+  }
+
+  .timer-value {
+    font-size: 18px;
   }
 
   .benefit-header {

@@ -156,9 +156,25 @@
 
       <!-- 추가 기능 버튼 -->
       <section class="extra-actions">
-        <button class="btn btn-secondary" onclick="openCheckinPage()">
+        <button
+          class="btn btn-secondary"
+          id="previewBtn"
+          onclick="openCheckinPage()"
+          disabled
+        >
           📱 체크인 페이지 미리보기
         </button>
+        <p
+          id="previewHint"
+          style="
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            margin-top: 10px;
+          "
+        >
+          먼저 상단에서 설명회를 선택해주세요
+        </p>
       </section>
     </main>
 

@@ -9,7 +9,7 @@
     />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>설명회 출석 체크인 - i.study</title>
+    <title>설명회 참석 체크인 - i.study</title>
 
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -25,7 +25,7 @@
     <header class="header">
       <div class="header-content">
         <div class="header-left">
-          <h1 class="header-title">설명회 출석 체크인</h1>
+          <h1 class="header-title">설명회 참석 체크인</h1>
           <p class="header-subtitle" id="seminarTitle">
             설명회 정보를 불러오는 중...
           </p>
@@ -42,7 +42,7 @@
           <span class="step">2</span>
         </div>
 
-        <h2 class="section-title">📱 출석 확인</h2>
+        <h2 class="section-title">참석 확인</h2>
         <p class="section-desc">학부모님 전화번호 뒷 4자리를 입력해주세요</p>
 
         <form id="phoneForm" class="checkin-form">
@@ -65,7 +65,7 @@
         </form>
 
         <div class="help-text">
-          <p>💡 예약 시 등록한 전화번호를 입력해주세요</p>
+          <p>예약 시 등록한 전화번호를 입력해주세요</p>
         </div>
       </section>
 
@@ -77,7 +77,7 @@
           <span class="step">2</span>
         </div>
 
-        <h2 class="section-title">🔍 추가 확인이 필요합니다</h2>
+        <h2 class="section-title">추가 확인이 필요합니다</h2>
         <p class="section-desc">전화번호 중간 4자리를 추가로 입력해주세요</p>
 
         <form id="duplicateForm" class="checkin-form">
@@ -105,7 +105,7 @@
         </button>
       </section>
 
-      <!-- STEP 2: 체크인 완료 -->
+      <!-- STEP 2: 체크인 완료 (개선된 디자인) -->
       <section class="section-card hidden" id="completeStep">
         <div class="step-indicator">
           <span class="step completed">✓</span>
@@ -113,62 +113,58 @@
           <span class="step active">2</span>
         </div>
 
-        <!-- 성공 메시지 -->
-        <div class="success-message">
-          <div class="success-icon">✅</div>
-          <h2 class="success-title">출석이 확인되었습니다!</h2>
-          <p class="success-name" id="attendeeName">홍길동 학부모님</p>
+        <!-- 참석 확인 메시지 -->
+        <div class="complete-header">
+          <h2 class="complete-title">참석이 확인되었습니다</h2>
+          <p class="attendee-name" id="attendeeName">홍길동 학부모님</p>
+          <p class="brand-message">"아이의 생각하는 힘을 키워갑니다"</p>
+          <p class="brand-name">수리탐구 i.study</p>
         </div>
 
-        <!-- 혜택 안내 -->
-        <div class="benefit-card">
-          <div class="benefit-header">
-            <span class="benefit-badge">🎁 설명회 참석자 특별 혜택</span>
-            <span class="benefit-timer" id="benefitTimer"
-              >⭐ 오늘만 예약 가능!</span
-            >
-          </div>
+        <!-- 컨설팅 혜택 안내 -->
+        <div class="consulting-benefit">
+          <div class="benefit-badge">설명회 참석자 특별 혜택</div>
 
-          <h3 class="benefit-title">1:1 개별 컨설팅 우선 예약</h3>
+          <h3 class="benefit-title">
+            오늘 하루만 제공되는<br />
+            1:1 맞춤 컨설팅 우선 예약
+          </h3>
 
-          <ul class="benefit-list">
-            <li>✅ 원하는 시간대 우선 선택 가능</li>
-            <li>✅ 맞춤형 학습 전략 컨설팅</li>
-            <li>✅ 내일부터는 일반 오픈 (선착순 마감)</li>
+          <ul class="benefit-features">
+            <li>참석자 전용 시간대 선택</li>
+            <li>대표이사와의 개별 컨설팅</li>
+            <li>개인별 맞춤 학습 로드맵</li>
           </ul>
 
+          <div class="timer-container">
+            <span class="timer-label">남은 시간</span>
+            <span class="timer-value" id="benefitTimer">23:59:00</span>
+          </div>
+
           <button
-            class="btn btn-primary btn-large btn-highlight"
+            class="btn btn-primary btn-large btn-consulting"
             onclick="goToConsulting()"
           >
-            🗓 지금 바로 컨설팅 예약하기
+            지금 컨설팅 예약하기
           </button>
         </div>
 
         <!-- 나중에 예약 옵션 -->
-        <div class="later-options">
+        <div class="later-section">
           <p class="later-title">나중에 예약하시겠어요?</p>
 
-          <div class="share-buttons">
-            <button class="btn btn-outline" onclick="copyLink()">
-              📋 링크 복사
-            </button>
-            <button class="btn btn-outline" onclick="shareKakao()">
-              💬 카톡 공유
-            </button>
-          </div>
+          <button class="btn btn-outline btn-copy" onclick="copyLink()">
+            예약 링크 복사
+          </button>
 
-          <!-- 재접속 코드 -->
-          <div class="access-code">
-            <div class="code-label">예약 페이지 바로가기</div>
-            <div class="code-display" id="accessCode">A1B2</div>
-            <div class="code-hint">이 코드를 저장해두세요</div>
+          <div class="copy-guide">
+            <p>복사 후 카카오톡 '나와의 채팅'에<br />저장해두세요</p>
           </div>
         </div>
 
-        <!-- 홈으로 버튼 -->
-        <div class="bottom-actions">
-          <button class="btn btn-secondary" onclick="goHome()">
+        <!-- 홈으로 -->
+        <div class="footer-action">
+          <button class="btn btn-text" onclick="goHome()">
             홈으로 돌아가기
           </button>
         </div>
@@ -177,7 +173,7 @@
       <!-- 에러 상태 -->
       <section class="section-card hidden" id="errorStep">
         <div class="error-message">
-          <div class="error-icon">❌</div>
+          <div class="error-icon">⚠️</div>
           <h2 class="error-title">예약을 찾을 수 없습니다</h2>
           <p class="error-desc">
             입력하신 전화번호로 예약된 내역이 없습니다.<br />
@@ -190,8 +186,7 @@
         </button>
 
         <div class="help-link">
-          <p>문의가 필요하신가요?</p>
-          <a href="tel:02-1234-5678">📞 02-1234-5678</a>
+          <p>학원 상담실로 문의해주세요</p>
         </div>
       </section>
 
