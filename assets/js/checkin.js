@@ -283,9 +283,11 @@ function refreshStats() {
 // ===== 체크인 페이지 미리보기 =====
 function openCheckinPage() {
   if (selectedSeminar) {
-    window.open(`/checkin.html?sid=${selectedSeminar.id}`, '_blank');
+    // 테스트 모드로 열기 (날짜 체크 스킵)
+    window.open(`/checkin.html?sid=${selectedSeminar.id}&test=true`, '_blank');
   } else {
-    window.open('/checkin.html', '_blank');
+    // 설명회 선택 안 된 경우 안내
+    showToast('먼저 설명회를 선택해주세요', 'warning');
   }
 }
 

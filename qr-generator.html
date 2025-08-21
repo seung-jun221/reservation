@@ -24,151 +24,143 @@
     <link rel="icon" href="data:," />
   </head>
   <body>
-    <div class="container">
-      <!-- 헤더 -->
-      <header class="header">
-        <div class="header-content">
-          <div class="header-left">
-            <h1>🎫 QR 체크인 코드 생성</h1>
-            <p class="header-subtitle">
-              설명회 현장 체크인용 QR 코드를 생성합니다
-            </p>
-          </div>
-          <div class="header-right">
-            <button class="btn btn-secondary" onclick="window.close()">
-              <span>✕</span> 닫기
-            </button>
+    <!-- 헤더 -->
+    <header class="header">
+      <div class="header-content">
+        <div class="header-left">
+          <h1 class="header-title">QR 체크인 코드 생성</h1>
+          <p class="header-subtitle">
+            설명회 현장 체크인용 QR 코드를 생성합니다
+          </p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-close" onclick="window.close()">닫기</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <!-- 설명회 선택 섹션 -->
+      <section class="section-card">
+        <h2 class="section-title">설명회 선택</h2>
+        <div class="form-group">
+          <select class="form-select" id="seminarSelect">
+            <option value="">설명회를 선택하세요</option>
+          </select>
+        </div>
+
+        <!-- 설명회 정보 -->
+        <div class="info-card" id="seminarInfo" style="display: none">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">제목</span>
+              <span class="info-value" id="infoTitle">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">일시</span>
+              <span class="info-value" id="infoDateTime">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">장소</span>
+              <span class="info-value" id="infoLocation">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">정원</span>
+              <span class="info-value" id="infoCapacity">-</span>
+            </div>
           </div>
         </div>
-      </header>
-      <!-- 메인 콘텐츠 -->
-      <main class="main-content">
-        <!-- 설명회 선택 섹션 -->
-        <section class="section-card">
-          <h2 class="section-title">설명회 선택</h2>
-          <div class="form-group">
-            <select class="form-select" id="seminarSelect">
-              <option value="">설명회를 선택하세요</option>
-            </select>
-          </div>
+      </section>
 
-          <!-- 설명회 정보 -->
-          <div class="info-card" id="seminarInfo" style="display: none">
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">제목</span>
-                <span class="info-value" id="infoTitle">-</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">일시</span>
-                <span class="info-value" id="infoDateTime">-</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">장소</span>
-                <span class="info-value" id="infoLocation">-</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">정원</span>
-                <span class="info-value" id="infoCapacity">-</span>
-              </div>
-            </div>
+      <!-- 실시간 통계 -->
+      <section class="section-card" id="statsSection" style="display: none">
+        <h2 class="section-title">📊 실시간 현황</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-value" id="totalReservations">0</span>
+            <span class="stat-label">전체 예약</span>
           </div>
-        </section>
+          <div class="stat-card success">
+            <span class="stat-value" id="checkedInCount">0</span>
+            <span class="stat-label">체크인 완료</span>
+          </div>
+          <div class="stat-card warning">
+            <span class="stat-value" id="pendingCount">0</span>
+            <span class="stat-label">미체크인</span>
+          </div>
+          <div class="stat-card info">
+            <span class="stat-value" id="checkInRate">0%</span>
+            <span class="stat-label">체크인율</span>
+          </div>
+        </div>
 
-        <!-- 실시간 통계 -->
-        <section class="section-card" id="statsSection" style="display: none">
-          <h2 class="section-title">📊 실시간 현황</h2>
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-value" id="totalReservations">0</div>
-              <div class="stat-label">전체 예약</div>
-            </div>
-            <div class="stat-card success">
-              <div class="stat-value" id="checkedInCount">0</div>
-              <div class="stat-label">체크인 완료</div>
-            </div>
-            <div class="stat-card warning">
-              <div class="stat-value" id="pendingCount">0</div>
-              <div class="stat-label">미체크인</div>
-            </div>
-            <div class="stat-card info">
-              <div class="stat-value" id="checkInRate">0%</div>
-              <div class="stat-label">체크인율</div>
+        <!-- 새로고침 버튼 -->
+        <button
+          class="btn btn-link"
+          onclick="refreshStats()"
+          style="margin-top: 15px"
+        >
+          🔄 통계 새로고침
+        </button>
+      </section>
+
+      <!-- QR 코드 섹션 -->
+      <section class="section-card">
+        <h2 class="section-title">QR 코드</h2>
+
+        <div class="qr-container">
+          <div id="qrcode">
+            <div class="qr-placeholder">
+              <div class="placeholder-icon">📱</div>
+              <p>설명회를 선택하면 QR 코드가 생성됩니다</p>
             </div>
           </div>
 
-          <!-- 새로고침 버튼 -->
-          <button
-            class="btn btn-link"
-            onclick="refreshStats()"
-            style="margin-top: 15px"
-          >
-            🔄 통계 새로고침
+          <!-- QR URL 표시 -->
+          <div class="qr-url" id="qrUrl" style="display: none">
+            <div class="url-label">체크인 URL</div>
+            <div class="url-text" id="urlText"></div>
+            <button class="btn-copy" onclick="copyUrl()">복사</button>
+          </div>
+        </div>
+
+        <!-- QR 코드 액션 버튼 -->
+        <div class="action-buttons" id="qrActions" style="display: none">
+          <button class="btn btn-primary" onclick="downloadQR()">
+            💾 QR 코드 저장
           </button>
-        </section>
-
-        <!-- QR 코드 섹션 -->
-        <section class="section-card">
-          <h2 class="section-title">QR 코드</h2>
-
-          <div class="qr-container">
-            <div id="qrcode">
-              <div class="qr-placeholder">
-                <div class="placeholder-icon">📱</div>
-                <p>설명회를 선택하면 QR 코드가 생성됩니다</p>
-              </div>
-            </div>
-
-            <!-- QR URL 표시 -->
-            <div class="qr-url" id="qrUrl" style="display: none">
-              <div class="url-label">체크인 URL</div>
-              <div class="url-text" id="urlText"></div>
-              <button class="btn-copy" onclick="copyUrl()">복사</button>
-            </div>
-          </div>
-
-          <!-- QR 코드 액션 버튼 -->
-          <div class="action-buttons" id="qrActions" style="display: none">
-            <button class="btn btn-primary" onclick="downloadQR()">
-              <span>💾</span> QR 코드 저장
-            </button>
-            <button class="btn btn-primary" onclick="printQR()">
-              <span>🖨️</span> QR 코드 인쇄
-            </button>
-          </div>
-        </section>
-
-        <!-- 사용 안내 -->
-        <section class="section-card" id="guideSection" style="display: none">
-          <h2 class="section-title">📌 사용 안내</h2>
-          <div class="guide-content">
-            <ol class="guide-list">
-              <li>생성된 QR 코드를 PPT 마지막 슬라이드에 삽입</li>
-              <li>설명회 종료 시점에 QR 코드 노출</li>
-              <li>참석자들이 스마트폰으로 QR 스캔</li>
-              <li>전화번호 입력으로 출석 확인</li>
-              <li>체크인 완료 후 컨설팅 예약 안내</li>
-            </ol>
-
-            <div class="alert alert-info">
-              <strong>💡 Tip:</strong> QR 코드는 화면에 크게 띄워주세요.
-              참석자가 멀리서도 스캔할 수 있도록 충분한 크기로 표시하는 것이
-              중요합니다.
-            </div>
-          </div>
-        </section>
-
-        <!-- 추가 기능 버튼 -->
-        <section class="extra-actions">
-          <button class="btn btn-secondary" onclick="openCheckinPage()">
-            <span>📱</span> 체크인 페이지 미리보기
+          <button class="btn btn-primary" onclick="printQR()">
+            🖨️ QR 코드 인쇄
           </button>
-          <button class="btn btn-secondary" onclick="goToMonitoring()">
-            <span>📊</span> 모니터링 대시보드
-          </button>
-        </section>
-      </main>
-    </div>
+        </div>
+      </section>
+
+      <!-- 사용 안내 -->
+      <section class="section-card" id="guideSection" style="display: none">
+        <h2 class="section-title">📌 사용 안내</h2>
+        <div class="guide-content">
+          <ol class="guide-list">
+            <li>생성된 QR 코드를 PPT 마지막 슬라이드에 삽입</li>
+            <li>설명회 종료 시점에 QR 코드 노출</li>
+            <li>참석자들이 스마트폰으로 QR 스캔</li>
+            <li>전화번호 입력으로 출석 확인</li>
+            <li>체크인 완료 후 컨설팅 예약 안내</li>
+          </ol>
+
+          <div class="alert alert-info">
+            <strong>💡 Tip:</strong> QR 코드는 화면에 크게 띄워주세요. 참석자가
+            멀리서도 스캔할 수 있도록 충분한 크기로 표시하는 것이 중요합니다.
+          </div>
+        </div>
+      </section>
+
+      <!-- 추가 기능 버튼 -->
+      <section class="extra-actions">
+        <button class="btn btn-secondary" onclick="openCheckinPage()">
+          📱 체크인 페이지 미리보기
+        </button>
+      </section>
+    </main>
 
     <!-- 로딩 오버레이 -->
     <div id="loadingOverlay" class="loading-overlay" style="display: none">
