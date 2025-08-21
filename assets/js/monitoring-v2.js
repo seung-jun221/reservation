@@ -23,7 +23,12 @@ let realtimeSubscription = null;
 let isMobile = window.innerWidth <= 768;
 let currentDropdownId = null;
 
-// ===== 전환율 분석 관련 변수 추가 =====
+// ===== 페이지네이션 관련 변수 =====
+let currentPage = 1;
+let entriesPerPage = 20;
+let totalPages = 1;
+
+// ===== 전환율 분석 관련 변수 =====
 let funnelData = {
   visit: 0,
   select: 0,
@@ -72,12 +77,8 @@ document.addEventListener('DOMContentLoaded', async function () {
   // 이벤트 리스너
   setupEventListeners();
 
-  // 자동 새로고침 (30초)
-  setInterval(() => {
-    if (!isLoading) {
-      loadData(false);
-    }
-  }, 30000);
+  // 자동 새로고침 제거 (Supabase Realtime 사용)
+  // 30초 자동 새로고침 제거됨
 });
 
 // ===== 디바이스 체크 =====
@@ -88,6 +89,15 @@ function checkDevice() {
   if (wasMobile !== isMobile) {
     // 디바이스 변경 시 UI 재렌더링
     updateTable();
+
+    // 모바일일 때 페이지당 항목 수 조정
+    if (isMobile) {
+      entriesPerPage = 10;
+      document.getElementById('entriesPerPageMobile').value = '10';
+    } else {
+      entriesPerPage = 20;
+      document.getElementById('entriesPerPage').value = '20';
+    }
   }
 }
 
@@ -125,8 +135,20 @@ async function loadData(showLoadingState = true) {
     allReservations = reservations || [];
     console.log('예약 로드:', allReservations.length, '개');
 
-    // 3. UI 업데이트
+    // 3. 현재 필터 상태 저장
+    const savedFilters = { ...currentFilters };
+    const savedSeminarValue = document.getElementById('filterSeminar')?.value;
+
+    // 4. UI 업데이트
     updateSeminarFilter();
+
+    // 5. 필터 상태 복원
+    if (savedSeminarValue) {
+      document.getElementById('filterSeminar').value = savedSeminarValue;
+      currentFilters.seminar = savedSeminarValue;
+    }
+    Object.assign(currentFilters, savedFilters);
+
     updateStats();
     updateSeminarStats();
     applyFilters();
@@ -143,8 +165,7 @@ async function loadData(showLoadingState = true) {
   }
 }
 
-// 전환율 데이터 로드
-// loadFunnelData 함수 수정 - 실제 데이터만 사용
+// ===== 전환율 데이터 로드 =====
 async function loadFunnelData() {
   try {
     console.log('전환율 데이터 로드 시작...');
@@ -168,7 +189,7 @@ async function loadFunnelData() {
         break;
     }
 
-    // 실제 예약 데이터만 사용 (가상 데이터 제거)
+    // 실제 예약 데이터만 사용
     const totalReservations = allReservations.filter(
       (r) =>
         new Date(r.registered_at) >= startDate &&
@@ -189,11 +210,11 @@ async function loadFunnelData() {
         new Date(r.registered_at) <= endDate
     ).length;
 
-    // 실제 데이터 기반 퍼널 (추정치 제거)
+    // 실제 데이터 기반 퍼널 (추정치)
     funnelData = {
-      visit: totalReservations * 10, // 실제 GA 데이터 연동 필요
-      select: totalReservations * 5, // 실제 이벤트 추적 필요
-      phone: totalReservations * 2, // 실제 이벤트 추적 필요
+      visit: totalReservations * 10, // GA 연동 필요
+      select: totalReservations * 5, // 이벤트 추적 필요
+      phone: totalReservations * 2, // 이벤트 추적 필요
       reservation: totalReservations,
       attendance: attendedReservations,
       consulting: 0, // 컨설팅 API 연동 필요
@@ -203,17 +224,19 @@ async function loadFunnelData() {
     updateConversionCards();
   } catch (error) {
     console.error('전환율 데이터 로드 실패:', error);
-    // 에러 시 기본값 표시
     showEmptyFunnelState();
   }
 }
 
-// 빈 상태 표시
+// 빈 전환율 상태 표시
 function showEmptyFunnelState() {
   document.querySelectorAll('[id$="Count"]').forEach((el) => {
     if (el) el.textContent = '0';
   });
   document.querySelectorAll('[id$="Rate"]').forEach((el) => {
+    if (el) el.textContent = '0%';
+  });
+  document.querySelectorAll('[id$="Conversion"]').forEach((el) => {
     if (el) el.textContent = '0%';
   });
 }
@@ -291,101 +314,6 @@ function updateConversionCards() {
       : '0.00';
   const finalElement = document.getElementById('finalConversion');
   if (finalElement) finalElement.textContent = `${finalRate}%`;
-}
-
-// 이탈 분석 업데이트
-function updateDropoutAnalysis() {
-  const dropouts = [
-    {
-      from: '페이지 방문',
-      to: '설명회 선택',
-      icon: '👁️',
-      lost: funnelData.visit - funnelData.select,
-      rate:
-        funnelData.visit > 0
-          ? (
-              ((funnelData.visit - funnelData.select) / funnelData.visit) *
-              100
-            ).toFixed(1)
-          : '0.0',
-    },
-    {
-      from: '설명회 선택',
-      to: '전화번호 입력',
-      icon: '📱',
-      lost: funnelData.select - funnelData.phone,
-      rate:
-        funnelData.select > 0
-          ? (
-              ((funnelData.select - funnelData.phone) / funnelData.select) *
-              100
-            ).toFixed(1)
-          : '0.0',
-    },
-    {
-      from: '전화번호 입력',
-      to: '예약 완료',
-      icon: '✍️',
-      lost: funnelData.phone - funnelData.reservation,
-      rate:
-        funnelData.phone > 0
-          ? (
-              ((funnelData.phone - funnelData.reservation) / funnelData.phone) *
-              100
-            ).toFixed(1)
-          : '0.0',
-    },
-    {
-      from: '예약 완료',
-      to: '설명회 참석',
-      icon: '🚪',
-      lost: funnelData.reservation - funnelData.attendance,
-      rate:
-        funnelData.reservation > 0
-          ? (
-              ((funnelData.reservation - funnelData.attendance) /
-                funnelData.reservation) *
-              100
-            ).toFixed(1)
-          : '0.0',
-    },
-    {
-      from: '설명회 참석',
-      to: '컨설팅 예약',
-      icon: '💼',
-      lost: funnelData.attendance - funnelData.consulting,
-      rate:
-        funnelData.attendance > 0
-          ? (
-              ((funnelData.attendance - funnelData.consulting) /
-                funnelData.attendance) *
-              100
-            ).toFixed(1)
-          : '0.0',
-    },
-  ];
-
-  dropouts.sort((a, b) => parseFloat(b.rate) - parseFloat(a.rate));
-
-  const container = document.getElementById('dropoutItems');
-  if (container) {
-    container.innerHTML = dropouts
-      .map(
-        (dropout, index) => `
-      <div class="dropout-item" style="animation-delay: ${index * 0.1}s">
-        <div class="dropout-stage">
-          <div class="dropout-icon">${dropout.icon}</div>
-          <div class="dropout-name">${dropout.from} → ${dropout.to}</div>
-        </div>
-        <div class="dropout-stats">
-          <div class="dropout-rate">${dropout.rate}%</div>
-          <div class="dropout-count">${dropout.lost.toLocaleString()}명 이탈</div>
-        </div>
-      </div>
-    `
-      )
-      .join('');
-  }
 }
 
 // 숫자 애니메이션
@@ -544,6 +472,7 @@ function handleRealtimeChange(payload) {
   updateStats();
   updateSeminarStats();
   applyFilters();
+  loadFunnelData(); // 전환율도 업데이트
 }
 
 // ===== 통계 업데이트 =====
@@ -568,28 +497,55 @@ function updateStats() {
   animateNumber('totalAttended', stats.attended);
   animateNumber('totalPending', stats.pending);
   animateNumber('totalCancelled', stats.cancelled);
-
-  // 전환율 데이터도 업데이트
-  if (typeof loadFunnelData === 'function') {
-    loadFunnelData();
-  }
 }
 
-// ===== 설명회별 통계 =====
+// ===== 설명회별 통계 (재참석자 포함) =====
 function updateSeminarStats() {
   const statsHtml = [];
   const listHtml = [];
 
   seminarSchedule.forEach((seminar, index) => {
-    const reservations = allReservations.filter(
+    // 현재 설명회의 예약자들
+    const currentReservations = allReservations.filter(
       (r) =>
         r.seminar_id === seminar.id &&
         r.status !== '취소' &&
         r.status !== '대기'
     );
-    const count = reservations.length;
-    const capacity = seminar.display_capacity || seminar.max_capacity;
-    const percent = Math.round((count / capacity) * 100);
+
+    // 재참석자 계산
+    let returningCount = 0;
+    let newCount = 0;
+
+    currentReservations.forEach((reservation) => {
+      // 전화번호 정규화
+      const phoneNumber = reservation.parent_phone?.replace(/[^0-9]/g, '');
+
+      if (phoneNumber) {
+        // 이전 설명회 참석 여부 확인
+        const hasAttendedBefore = allReservations.some(
+          (r) =>
+            r.id !== reservation.id && // 현재 예약 제외
+            r.parent_phone?.replace(/[^0-9]/g, '') === phoneNumber &&
+            r.status === '참석' &&
+            new Date(r.registered_at) < new Date(reservation.registered_at) // 이전 날짜
+        );
+
+        if (hasAttendedBefore) {
+          returningCount++;
+        } else {
+          newCount++;
+        }
+      } else {
+        newCount++; // 전화번호 없으면 신규로 간주
+      }
+    });
+
+    const totalCount = currentReservations.length;
+    const capacity = seminar.display_capacity || seminar.max_capacity || 100;
+    const totalPercent = Math.round((totalCount / capacity) * 100);
+    const newPercent = Math.round((newCount / capacity) * 100);
+    const returningPercent = Math.round((returningCount / capacity) * 100);
 
     // 지역명 추출
     const location = seminar.title.split('-').pop()?.trim() || seminar.title;
@@ -600,8 +556,8 @@ function updateSeminarStats() {
 
     // 색상 결정
     let colorClass = '';
-    if (percent >= 80) colorClass = 'danger';
-    else if (percent >= 50) colorClass = 'warning';
+    if (totalPercent >= 80) colorClass = 'danger';
+    else if (totalPercent >= 50) colorClass = 'warning';
 
     // 차트 뷰용 카드
     statsHtml.push(`
@@ -615,12 +571,32 @@ function updateSeminarStats() {
     )}</div>
           </div>
         </div>
-        <div class="progress-bar">
-          <div class="progress-fill ${colorClass}" style="width: ${percent}%"></div>
+        <div class="progress-bar stacked">
+          ${
+            newCount > 0
+              ? `<div class="progress-fill new ${colorClass}" 
+                  style="width: ${newPercent}%" 
+                  title="신규: ${newCount}명"></div>`
+              : ''
+          }
+          ${
+            returningCount > 0
+              ? `<div class="progress-fill returning ${colorClass}" 
+                  style="width: ${returningPercent}%" 
+                  title="재참석: ${returningCount}명"></div>`
+              : ''
+          }
         </div>
         <div class="seminar-card-stats">
-          <span class="seminar-card-count">${count} / ${capacity}명</span>
-          <span class="seminar-card-percent">${percent}%</span>
+          <span class="seminar-card-count">
+            ${totalCount} / ${capacity}명
+            ${
+              returningCount > 0
+                ? `<span class="returning-info">(재참석 ${returningCount}명)</span>`
+                : ''
+            }
+          </span>
+          <span class="seminar-card-percent">${totalPercent}%</span>
         </div>
       </div>
     `);
@@ -630,8 +606,11 @@ function updateSeminarStats() {
       <div class="seminar-list-item">
         <span class="seminar-list-name">${location}</span>
         <span class="seminar-list-date">${dateStr}</span>
-        <span class="seminar-list-count">${count}/${capacity}</span>
-        <span class="seminar-list-percent ${colorClass}">${percent}%</span>
+        <span class="seminar-list-count">
+          ${totalCount}/${capacity}
+          ${returningCount > 0 ? `<small>(재${returningCount})</small>` : ''}
+        </span>
+        <span class="seminar-list-percent ${colorClass}">${totalPercent}%</span>
       </div>
     `);
   });
@@ -735,6 +714,9 @@ function applyFilters() {
     return true;
   });
 
+  // 필터 적용 후 첫 페이지로 이동
+  currentPage = 1;
+
   // 테이블 업데이트
   updateTable();
 }
@@ -757,17 +739,39 @@ function resetFilters() {
   });
   document.querySelector('.quick-filter-btn').classList.add('active');
 
+  currentFilters = {
+    seminar: '',
+    status: '',
+    studentName: '',
+    phone: '',
+    school: '',
+  };
+
+  currentPage = 1;
   applyFilters();
   showToast('필터가 초기화되었습니다.');
 }
 
-// ===== 테이블 업데이트 =====
+// ===== 테이블 업데이트 (페이지네이션 포함) =====
 function updateTable() {
   const desktopTable = document.querySelector('.desktop-table');
   const mobileList = document.querySelector('.mobile-list');
   const emptyState = document.getElementById('emptyState');
   const tbody = document.getElementById('desktopTableBody');
   const mobileContainer = document.getElementById('mobileList');
+
+  // 페이지네이션 계산
+  totalPages = Math.ceil(filteredReservations.length / entriesPerPage);
+
+  // 현재 페이지가 총 페이지수를 초과하면 마지막 페이지로
+  if (currentPage > totalPages && totalPages > 0) {
+    currentPage = totalPages;
+  }
+
+  // 현재 페이지 데이터만 추출
+  const startIndex = (currentPage - 1) * entriesPerPage;
+  const endIndex = startIndex + entriesPerPage;
+  const pageData = filteredReservations.slice(startIndex, endIndex);
 
   // 먼저 기존 데이터를 모두 비움
   if (tbody) tbody.innerHTML = '';
@@ -787,23 +791,33 @@ function updateTable() {
   if (isMobile) {
     if (mobileList) mobileList.classList.remove('hidden');
     if (desktopTable) desktopTable.classList.add('hidden');
-    updateMobileList();
+    updateMobileList(pageData, startIndex);
   } else {
     if (desktopTable) desktopTable.classList.remove('hidden');
     if (mobileList) mobileList.classList.add('hidden');
-    updateDesktopTable();
+    updateDesktopTable(pageData, startIndex);
   }
+
+  // 페이지네이션 UI 업데이트
+  updatePagination();
+
+  // 전체 개수 업데이트
+  document.getElementById('totalEntries').textContent =
+    filteredReservations.length;
+  const mobileTotal = document.getElementById('totalEntriesMobile');
+  if (mobileTotal) mobileTotal.textContent = filteredReservations.length;
 }
 
 // ===== 데스크톱 테이블 업데이트 =====
-function updateDesktopTable() {
+function updateDesktopTable(pageData, startIndex) {
   const tbody = document.getElementById('desktopTableBody');
   if (!tbody) return;
 
-  tbody.innerHTML = filteredReservations
+  tbody.innerHTML = pageData
     .map((r, index) => {
       const seminar = seminarSchedule.find((s) => s.id === r.seminar_id);
       const isChecked = selectedRows.has(r.id);
+      const globalIndex = startIndex + index + 1; // 전체 번호
 
       // 지역명만 추출
       const location = seminar
@@ -832,7 +846,7 @@ function updateDesktopTable() {
                  ${isChecked ? 'checked' : ''}
                  onchange="toggleRowSelection(${r.id})">
         </td>
-        <td>${index + 1}</td>
+        <td>${globalIndex}</td>
         <td title="${r.reservation_id}">${r.reservation_id}</td>
         <td title="${seminar ? seminar.title : '-'}">${location}</td>
         <td>${r.student_name}</td>
@@ -856,11 +870,11 @@ function updateDesktopTable() {
 }
 
 // ===== 모바일 리스트 업데이트 =====
-function updateMobileList() {
+function updateMobileList(pageData, startIndex) {
   const container = document.getElementById('mobileList');
   if (!container) return;
 
-  container.innerHTML = filteredReservations
+  container.innerHTML = pageData
     .map((r) => {
       const seminar = seminarSchedule.find((s) => s.id === r.seminar_id);
       const isChecked = selectedRows.has(r.id);
@@ -890,7 +904,126 @@ function updateMobileList() {
     `;
     })
     .join('');
+
+  // 모바일 페이지 정보 업데이트
+  const pageInfo = document.getElementById('mobilePageInfo');
+  if (pageInfo) {
+    pageInfo.textContent = `${currentPage} / ${totalPages || 1}`;
+  }
 }
+
+// ===== 페이지네이션 UI 업데이트 =====
+function updatePagination() {
+  const pageNumbers = document.getElementById('pageNumbers');
+  if (!pageNumbers) return;
+
+  pageNumbers.innerHTML = '';
+
+  // 페이지 번호 생성 로직
+  const maxButtons = isMobile ? 5 : 10;
+  let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+  let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+  if (endPage - startPage < maxButtons - 1) {
+    startPage = Math.max(1, endPage - maxButtons + 1);
+  }
+
+  // 첫 페이지
+  if (startPage > 1) {
+    pageNumbers.innerHTML += `
+      <button class="page-number" onclick="changePage(1)">1</button>
+    `;
+    if (startPage > 2) {
+      pageNumbers.innerHTML += `<span class="page-ellipsis">...</span>`;
+    }
+  }
+
+  // 페이지 번호들
+  for (let i = startPage; i <= endPage; i++) {
+    pageNumbers.innerHTML += `
+      <button class="page-number ${i === currentPage ? 'active' : ''}" 
+              onclick="changePage(${i})">${i}</button>
+    `;
+  }
+
+  // 마지막 페이지
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) {
+      pageNumbers.innerHTML += `<span class="page-ellipsis">...</span>`;
+    }
+    pageNumbers.innerHTML += `
+      <button class="page-number" onclick="changePage(${totalPages})">${totalPages}</button>
+    `;
+  }
+
+  // 버튼 활성화/비활성화
+  const firstBtn = document.getElementById('firstPageBtn');
+  const prevBtn = document.getElementById('prevPageBtn');
+  const nextBtn = document.getElementById('nextPageBtn');
+  const lastBtn = document.getElementById('lastPageBtn');
+
+  if (firstBtn) firstBtn.disabled = currentPage === 1;
+  if (prevBtn) prevBtn.disabled = currentPage === 1;
+  if (nextBtn)
+    nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+  if (lastBtn)
+    lastBtn.disabled = currentPage === totalPages || totalPages === 0;
+}
+
+// ===== 페이지 변경 함수들 =====
+function changePage(page) {
+  if (page < 1 || page > totalPages) return;
+  currentPage = page;
+  updateTable();
+
+  // 테이블 상단으로 스크롤
+  document
+    .querySelector('.table-section')
+    .scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function goToFirstPage() {
+  changePage(1);
+}
+
+function goToPrevPage() {
+  changePage(currentPage - 1);
+}
+
+function goToNextPage() {
+  changePage(currentPage + 1);
+}
+
+function goToLastPage() {
+  changePage(totalPages);
+}
+
+function changeEntriesPerPage() {
+  const selectDesktop = document.getElementById('entriesPerPage');
+  const selectMobile = document.getElementById('entriesPerPageMobile');
+
+  if (isMobile && selectMobile) {
+    entriesPerPage = parseInt(selectMobile.value);
+  } else if (selectDesktop) {
+    entriesPerPage = parseInt(selectDesktop.value);
+  }
+
+  currentPage = 1; // 첫 페이지로 리셋
+  updateTable();
+}
+
+// window 객체에 페이지네이션 함수 등록
+window.changePage = changePage;
+window.goToFirstPage = goToFirstPage;
+window.goToPrevPage = goToPrevPage;
+window.goToNextPage = goToNextPage;
+window.goToLastPage = goToLastPage;
+window.changeEntriesPerPage = changeEntriesPerPage;
+window.toggleStatsView = toggleStatsView;
+window.toggleFilters = toggleFilters;
+window.quickFilter = quickFilter;
+window.applyFilters = applyFilters;
+window.resetFilters = resetFilters;
 
 // ===== 드롭다운 토글 =====
 function toggleDropdown(event, reservationId) {
@@ -911,6 +1044,8 @@ function toggleDropdown(event, reservationId) {
   // 표시/숨김 토글
   dropdown.classList.toggle('hidden');
 }
+
+window.toggleDropdown = toggleDropdown;
 
 // ===== 드롭다운 액션 처리 =====
 function handleDropdownAction(action) {
@@ -936,6 +1071,8 @@ function handleDropdownAction(action) {
 
   currentDropdownId = null;
 }
+
+window.handleDropdownAction = handleDropdownAction;
 
 // ===== 상태 배지 =====
 function getStatusBadge(status) {
@@ -999,6 +1136,8 @@ function toggleRowSelection(id) {
   updateSelectionBar();
 }
 
+window.toggleRowSelection = toggleRowSelection;
+
 // ===== 전체 선택 =====
 function toggleSelectAll() {
   const selectAll = document.getElementById('selectAll');
@@ -1020,6 +1159,8 @@ function toggleSelectAll() {
   updateSelectionBar();
 }
 
+window.toggleSelectAll = toggleSelectAll;
+
 // ===== 선택 초기화 =====
 function clearSelection() {
   selectedRows.clear();
@@ -1031,6 +1172,8 @@ function clearSelection() {
   });
   updateSelectionBar();
 }
+
+window.clearSelection = clearSelection;
 
 // ===== 선택 바 업데이트 =====
 function updateSelectionBar() {
@@ -1101,6 +1244,8 @@ async function bulkUpdate(status) {
   }
 }
 
+window.bulkUpdate = bulkUpdate;
+
 // ===== 편집 모달 =====
 function openEditModal(id) {
   const reservation = allReservations.find((r) => r.id === id);
@@ -1125,6 +1270,8 @@ function closeEditModal() {
   document.getElementById('editModal').classList.add('hidden');
   document.getElementById('editForm').reset();
 }
+
+window.closeEditModal = closeEditModal;
 
 async function saveEdit() {
   const id = document.getElementById('editId').value;
@@ -1160,6 +1307,8 @@ async function saveEdit() {
     showToast('수정 중 오류가 발생했습니다.', 'error');
   }
 }
+
+window.saveEdit = saveEdit;
 
 // ===== 엑셀 다운로드 =====
 function exportToExcel() {
@@ -1201,6 +1350,8 @@ function exportToExcel() {
   }
 }
 
+window.exportToExcel = exportToExcel;
+
 // ===== FAB 메뉴 토글 =====
 function toggleFabMenu() {
   const menu = document.getElementById('fabMenu');
@@ -1208,6 +1359,8 @@ function toggleFabMenu() {
     menu.classList.toggle('hidden');
   }
 }
+
+window.toggleFabMenu = toggleFabMenu;
 
 function showBulkActions() {
   // 일괄 선택 모드 활성화
@@ -1224,6 +1377,8 @@ function showBulkActions() {
   if (fabMenu) fabMenu.classList.add('hidden');
 }
 
+window.showBulkActions = showBulkActions;
+
 // ===== 유틸리티 함수들 =====
 
 // 새로고침
@@ -1232,10 +1387,14 @@ function refreshData() {
   showToast('데이터를 새로고침했습니다.');
 }
 
+window.refreshData = refreshData;
+
 // 설명회 필터 업데이트
 function updateSeminarFilter() {
   const select = document.getElementById('filterSeminar');
   if (!select) return;
+
+  const currentValue = select.value; // 현재 선택값 저장
 
   select.innerHTML = '<option value="">전체 설명회</option>';
 
@@ -1245,9 +1404,12 @@ function updateSeminarFilter() {
     option.textContent = `${formatDateShort(seminar.date)} ${seminar.title}`;
     select.appendChild(option);
   });
+
+  // 이전 선택값 복원
+  select.value = currentValue;
 }
 
-// 숫자 애니메이션
+// 숫자 애니메이션 (id 방식)
 function animateNumber(elementId, target) {
   const element = document.getElementById(elementId);
   if (!element) return;
@@ -1340,31 +1502,6 @@ function showLoading(show) {
     if (emptyState) emptyState.classList.add('hidden');
   } else {
     if (loadingState) loadingState.classList.add('hidden');
-    // 로딩이 끝나면 updateTable이 호출되므로 여기서는 숨김 처리만
-  }
-}
-
-// 빈 상태 표시 - 이 함수들은 더 이상 필요 없으므로 제거하거나 단순화
-function showEmptyState() {
-  const emptyState = document.getElementById('emptyState');
-  const desktopTable = document.querySelector('.desktop-table');
-  const mobileList = document.querySelector('.mobile-list');
-
-  if (emptyState) emptyState.classList.remove('hidden');
-  if (desktopTable) desktopTable.classList.add('hidden');
-  if (mobileList) mobileList.classList.add('hidden');
-}
-
-function hideEmptyState() {
-  const emptyState = document.getElementById('emptyState');
-  if (emptyState) emptyState.classList.add('hidden');
-
-  if (isMobile) {
-    const mobileList = document.querySelector('.mobile-list');
-    if (mobileList) mobileList.classList.remove('hidden');
-  } else {
-    const desktopTable = document.querySelector('.desktop-table');
-    if (desktopTable) desktopTable.classList.remove('hidden');
   }
 }
 

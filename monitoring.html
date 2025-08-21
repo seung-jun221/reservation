@@ -24,7 +24,7 @@
 
       // 3. 버전 기반 강제 새로고침
       (function () {
-        const FORCE_VERSION = '20250820-2';
+        const FORCE_VERSION = '20250820-3';
         const STORAGE_KEY = 'force_refresh_version';
         const savedVersion = sessionStorage.getItem(STORAGE_KEY);
 
@@ -90,15 +90,11 @@
 
     <title>VIP 설명회 예약 모니터링 - i.study</title>
 
-    <!-- 버전 파라미터 추가 -->
-    <link rel="stylesheet" href="assets/css/monitoring-v2.css?v=20250820" />
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <!-- Supabase 클라이언트 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- CSS 파일 -->
-    <link rel="stylesheet" href="assets/css/monitoring-v2.css" />
+    <link rel="stylesheet" href="assets/css/monitoring-v2.css?v=20250820" />
 
     <!-- 파비콘 -->
     <link rel="icon" href="data:," />
@@ -289,6 +285,40 @@
 
       <!-- 데이터 테이블 섹션 -->
       <section class="table-section">
+        <!-- 테이블 상단 컨트롤 추가 -->
+        <div class="table-controls">
+          <div class="table-info">
+            <span>전체 <strong id="totalEntries">0</strong>개</span>
+            <select id="entriesPerPage" onchange="changeEntriesPerPage()">
+              <option value="20" selected>20개씩 보기</option>
+              <option value="30">30개씩 보기</option>
+              <option value="50">50개씩 보기</option>
+              <option value="100">100개씩 보기</option>
+            </select>
+          </div>
+          <div class="pagination" id="pagination">
+            <button
+              class="page-btn"
+              onclick="goToFirstPage()"
+              id="firstPageBtn"
+            >
+              ≪
+            </button>
+            <button class="page-btn" onclick="goToPrevPage()" id="prevPageBtn">
+              ＜
+            </button>
+            <div class="page-numbers" id="pageNumbers">
+              <!-- 동적 생성 -->
+            </div>
+            <button class="page-btn" onclick="goToNextPage()" id="nextPageBtn">
+              ＞
+            </button>
+            <button class="page-btn" onclick="goToLastPage()" id="lastPageBtn">
+              ≫
+            </button>
+          </div>
+        </div>
+
         <!-- PC 테이블 -->
         <div class="desktop-table desktop-only">
           <table class="data-table">
@@ -321,8 +351,23 @@
         </div>
 
         <!-- 모바일 리스트 -->
-        <div class="mobile-list mobile-only" id="mobileList">
-          <!-- 동적 생성 -->
+        <div class="mobile-list mobile-only">
+          <div class="mobile-controls">
+            <span>전체 <strong id="totalEntriesMobile">0</strong>개</span>
+            <select id="entriesPerPageMobile" onchange="changeEntriesPerPage()">
+              <option value="10" selected>10개씩</option>
+              <option value="20">20개씩</option>
+              <option value="30">30개씩</option>
+            </select>
+          </div>
+          <div id="mobileList">
+            <!-- 동적 생성 -->
+          </div>
+          <div class="mobile-pagination">
+            <button onclick="goToPrevPage()">이전</button>
+            <span id="mobilePageInfo">1 / 1</span>
+            <button onclick="goToNextPage()">다음</button>
+          </div>
         </div>
 
         <!-- 로딩 상태 -->
@@ -339,7 +384,7 @@
       </section>
 
       <!-- 전환율 분석 섹션 -->
-      <section class="stats-section">
+      <section class="stats-section funnel-section" style="margin-top: 24px">
         <div class="seminar-stats">
           <div class="section-header">
             <h2 class="section-title">전환율 분석</h2>
@@ -424,7 +469,7 @@
       </section>
 
       <!-- 핵심 지표 카드 -->
-      <section class="stats-section">
+      <section class="stats-section funnel-section">
         <div class="total-stats">
           <div class="mini-stat-card">
             <span class="mini-stat-value" id="bookingConversion">10.0%</span>
