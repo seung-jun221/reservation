@@ -24,7 +24,7 @@
 
       // 3. 버전 기반 강제 새로고침
       (function () {
-        const FORCE_VERSION = '20250820-3';
+        const FORCE_VERSION = '20250122-1';
         const STORAGE_KEY = 'force_refresh_version';
         const savedVersion = sessionStorage.getItem(STORAGE_KEY);
 
@@ -63,7 +63,7 @@
     <script>
       // 버전 체크 및 강제 리다이렉트
       (function () {
-        const CURRENT_VERSION = '20250820';
+        const CURRENT_VERSION = '20250122';
         const urlParams = new URLSearchParams(window.location.search);
         const urlVersion = urlParams.get('v');
 
@@ -94,7 +94,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- CSS 파일 -->
-    <link rel="stylesheet" href="assets/css/monitoring-v2.css?v=20250820" />
+    <link rel="stylesheet" href="assets/css/monitoring-v2.css?v=20250122" />
 
     <!-- 파비콘 -->
     <link rel="icon" href="data:," />
@@ -119,7 +119,17 @@
     </header>
 
     <main class="main-container">
-      <!-- 통계 섹션 -->
+      <!-- 모드 전환 탭 추가 -->
+      <section class="mode-tabs">
+        <button class="mode-tab active" onclick="switchMode('general')">
+          📊 일반 모니터링
+        </button>
+        <button class="mode-tab" onclick="switchMode('checkin')">
+          ✅ 체크인 분석
+        </button>
+      </section>
+
+      <!-- 일반 통계 섹션 -->
       <section class="stats-section">
         <!-- 전체 통계 미니 카드 -->
         <div class="total-stats">
@@ -171,6 +181,80 @@
               <!-- 동적으로 생성됨 -->
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- 체크인 분석 통계 (기본 숨김) -->
+      <section class="checkin-stats-section hidden" id="checkinStatsSection">
+        <div class="checkin-overview">
+          <h2 class="section-title">체크인 현황</h2>
+          <div class="checkin-stats-grid">
+            <!-- 전체 체크인 -->
+            <div class="checkin-stat-card total">
+              <div class="checkin-stat-icon">👥</div>
+              <div class="checkin-stat-content">
+                <div class="checkin-stat-value" id="totalCheckins">0</div>
+                <div class="checkin-stat-label">총 체크인</div>
+              </div>
+            </div>
+
+            <!-- 진단검사 신청 -->
+            <div class="checkin-stat-card test">
+              <div class="checkin-stat-icon">📝</div>
+              <div class="checkin-stat-content">
+                <div class="checkin-stat-value" id="testRequests">0</div>
+                <div class="checkin-stat-label">진단검사 신청</div>
+                <div class="checkin-stat-percent" id="testPercent">0%</div>
+              </div>
+            </div>
+
+            <!-- 상담 요청 -->
+            <div class="checkin-stat-card consult">
+              <div class="checkin-stat-icon">💬</div>
+              <div class="checkin-stat-content">
+                <div class="checkin-stat-value" id="consultRequests">0</div>
+                <div class="checkin-stat-label">상담 요청</div>
+                <div class="checkin-stat-percent" id="consultPercent">0%</div>
+              </div>
+            </div>
+
+            <!-- 미선택 -->
+            <div class="checkin-stat-card pending">
+              <div class="checkin-stat-icon">⏳</div>
+              <div class="checkin-stat-content">
+                <div class="checkin-stat-value" id="pendingChoice">0</div>
+                <div class="checkin-stat-label">미선택</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 등록 방식 비교 -->
+        <div class="registration-comparison">
+          <h3 class="subsection-title">등록 방식</h3>
+          <div class="comparison-grid">
+            <div class="comparison-card">
+              <span class="comparison-label">온라인 예약</span>
+              <span class="comparison-value" id="onlineCount">0</span>
+            </div>
+            <div class="comparison-card">
+              <span class="comparison-label">현장 등록</span>
+              <span class="comparison-value" id="offlineCount">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 액션 버튼 -->
+        <div class="checkin-actions">
+          <button class="btn btn-primary" onclick="exportTestList()">
+            📥 진단검사 신청자 명단 (엑셀)
+          </button>
+          <button class="btn btn-success" onclick="exportConsultList()">
+            📥 상담 요청자 명단 (엑셀)
+          </button>
+          <button class="btn btn-secondary" onclick="exportAllCheckins()">
+            📥 전체 체크인 명단 (엑셀)
+          </button>
         </div>
       </section>
 
@@ -228,6 +312,22 @@
                 placeholder="학교명"
               />
             </div>
+            <!-- 체크인 모드에서만 보이는 필터 추가 -->
+            <div
+              class="filter-group checkin-filter hidden"
+              id="checkinFilterGroup"
+            >
+              <select
+                class="filter-select"
+                id="filterChoice"
+                onchange="applyFilters()"
+              >
+                <option value="">전체 선택</option>
+                <option value="test">진단검사 신청</option>
+                <option value="consult">상담 요청</option>
+                <option value="none">미선택</option>
+              </select>
+            </div>
             <div class="filter-group filter-buttons">
               <button class="btn btn-primary" onclick="applyFilters()">
                 검색
@@ -258,6 +358,28 @@
           </button>
           <button class="quick-filter-btn" onclick="quickFilter('waitlist')">
             대기
+          </button>
+        </div>
+
+        <!-- 체크인 모드 빠른 필터 -->
+        <div
+          class="quick-filters checkin-quick-filters hidden"
+          id="checkinQuickFilters"
+        >
+          <button
+            class="quick-filter-btn active"
+            onclick="filterByChoice('all')"
+          >
+            전체
+          </button>
+          <button class="quick-filter-btn" onclick="filterByChoice('test')">
+            진단검사
+          </button>
+          <button class="quick-filter-btn" onclick="filterByChoice('consult')">
+            상담요청
+          </button>
+          <button class="quick-filter-btn" onclick="filterByChoice('none')">
+            미선택
           </button>
         </div>
       </section>
@@ -610,6 +732,6 @@
     </div>
 
     <!-- JavaScript -->
-    <script src="assets/js/monitoring-v2.js"></script>
+    <script src="assets/js/monitoring-v2.js?v=20250122"></script>
   </body>
 </html>

@@ -741,3 +741,289 @@ body {
     text-align: center;
   }
 }
+/* ===== 정보 입력 폼 (index.css에서 가져온 스타일) ===== */
+.info-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: var(--gray-700);
+  font-size: 14px;
+}
+
+.required {
+  color: var(--danger-color);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius-sm);
+  font-size: 15px;
+  font-family: inherit;
+  transition: all var(--transition);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
+}
+
+/* 간소화된 개인정보 동의 */
+.privacy-simple {
+  background: var(--gray-50);
+  padding: 12px;
+  border-radius: var(--border-radius-sm);
+  margin: 16px 0;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.checkbox-container input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.checkbox-text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--gray-700);
+}
+
+/* ===== 선택 섹션 스타일 ===== */
+.choice-section {
+  padding: 20px 0;
+}
+
+.choice-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-900);
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.choice-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.choice-btn {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: white;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+}
+
+.choice-btn:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.choice-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.choice-content h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: 4px;
+}
+
+.choice-content p {
+  font-size: 13px;
+  color: var(--gray-600);
+  margin: 0;
+}
+
+.test-btn:hover {
+  background: linear-gradient(
+    to right,
+    rgba(52, 152, 219, 0.05),
+    rgba(52, 152, 219, 0.02)
+  );
+  border-color: var(--info-color);
+}
+
+.consult-btn:hover {
+  background: linear-gradient(
+    to right,
+    rgba(39, 174, 96, 0.05),
+    rgba(39, 174, 96, 0.02)
+  );
+  border-color: var(--success-color);
+}
+
+/* 수업 상세 링크 */
+.course-link {
+  text-align: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.link-text {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.link-text:hover {
+  color: var(--primary-dark);
+  transform: translateX(4px);
+}
+
+/* ===== 최종 안내 화면 ===== */
+.final-message {
+  text-align: center;
+  padding: 30px 0;
+}
+
+.final-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.final-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 12px;
+}
+
+.final-desc {
+  font-size: 16px;
+  color: var(--primary-color);
+  font-weight: 500;
+  margin-bottom: 30px;
+  line-height: 1.5;
+}
+
+.final-info {
+  background: var(--gray-50);
+  padding: 16px;
+  border-radius: var(--border-radius-sm);
+  margin-bottom: 24px;
+}
+
+.final-info p {
+  font-size: 14px;
+  color: var(--gray-700);
+  margin-bottom: 8px;
+}
+
+.final-info p:last-child {
+  margin-bottom: 0;
+}
+
+.contact-info {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+/* ===== 3단계 스텝 인디케이터 ===== */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.step {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gray-200);
+  color: var(--gray-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.step.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+.step.completed {
+  background: var(--success-color);
+  color: white;
+}
+
+.step-line {
+  width: 40px;
+  height: 2px;
+  background: var(--gray-200);
+  margin: 0 8px;
+}
+
+.step-line.active {
+  background: var(--success-color);
+}
+
+/* ===== 반응형 ===== */
+@media (max-width: 768px) {
+  .choice-btn {
+    padding: 16px;
+  }
+
+  .choice-icon {
+    font-size: 28px;
+  }
+
+  .choice-content h4 {
+    font-size: 15px;
+  }
+
+  .choice-content p {
+    font-size: 12px;
+  }
+
+  .final-title {
+    font-size: 20px;
+  }
+
+  .final-desc {
+    font-size: 14px;
+  }
+}

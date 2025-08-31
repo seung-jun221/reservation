@@ -1771,3 +1771,275 @@ body {
 }
 
 /* 나중에 활성화할 때는 이 CSS만 제거하면 됨 */
+
+/* ===== 모드 전환 탭 ===== */
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: white;
+  padding: 8px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+}
+
+.mode-tab {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  border-radius: var(--border-radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mode-tab:hover {
+  background: var(--gray-50);
+}
+
+.mode-tab.active {
+  background: var(--primary-gradient);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===== 체크인 통계 섹션 ===== */
+.checkin-stats-section {
+  margin-bottom: 24px;
+}
+
+.checkin-overview {
+  background: white;
+  border-radius: var(--border-radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+.checkin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.checkin-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--gray-50);
+  border-radius: var(--border-radius);
+  border: 2px solid var(--gray-200);
+  transition: all var(--transition);
+}
+
+.checkin-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.checkin-stat-card.total {
+  border-color: var(--primary-color);
+  background: linear-gradient(
+    135deg,
+    rgba(44, 62, 80, 0.05),
+    rgba(44, 62, 80, 0.02)
+  );
+}
+
+.checkin-stat-card.test {
+  border-color: var(--info-color);
+  background: linear-gradient(
+    135deg,
+    rgba(52, 152, 219, 0.05),
+    rgba(52, 152, 219, 0.02)
+  );
+}
+
+.checkin-stat-card.consult {
+  border-color: var(--success-color);
+  background: linear-gradient(
+    135deg,
+    rgba(39, 174, 96, 0.05),
+    rgba(39, 174, 96, 0.02)
+  );
+}
+
+.checkin-stat-card.pending {
+  border-color: var(--warning-color);
+  background: linear-gradient(
+    135deg,
+    rgba(243, 156, 18, 0.05),
+    rgba(243, 156, 18, 0.02)
+  );
+}
+
+.checkin-stat-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.checkin-stat-content {
+  flex: 1;
+}
+
+.checkin-stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--gray-900);
+  line-height: 1;
+}
+
+.checkin-stat-label {
+  font-size: 13px;
+  color: var(--gray-600);
+  margin-top: 4px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.checkin-stat-percent {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-top: 4px;
+}
+
+/* ===== 등록 방식 비교 ===== */
+.registration-comparison {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 2px solid var(--gray-200);
+}
+
+.subsection-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.comparison-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius-sm);
+}
+
+.comparison-label {
+  font-size: 14px;
+  color: var(--gray-600);
+}
+
+.comparison-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+/* ===== 체크인 액션 버튼 ===== */
+.checkin-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.checkin-actions .btn {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* ===== 체크인 필터 ===== */
+.checkin-filter {
+  display: none;
+}
+
+.checkin-mode .checkin-filter {
+  display: block;
+}
+
+.checkin-quick-filters {
+  display: none;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.checkin-mode .checkin-quick-filters {
+  display: flex;
+}
+
+/* ===== 체크인 모드 클래스 ===== */
+body.checkin-mode .stats-section:not(.checkin-stats-section) {
+  display: none;
+}
+
+body.checkin-mode .checkin-stats-section {
+  display: block !important;
+}
+
+body.checkin-mode .funnel-section {
+  display: none !important;
+}
+
+/* ===== 반응형 ===== */
+@media (max-width: 768px) {
+  .mode-tabs {
+    padding: 6px;
+  }
+
+  .mode-tab {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+
+  .checkin-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .checkin-stat-card {
+    padding: 16px 12px;
+  }
+
+  .checkin-stat-icon {
+    font-size: 24px;
+  }
+
+  .checkin-stat-value {
+    font-size: 24px;
+  }
+
+  .checkin-actions {
+    flex-direction: column;
+  }
+
+  .checkin-actions .btn {
+    width: 100%;
+  }
+
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+}

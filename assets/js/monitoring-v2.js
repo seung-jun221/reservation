@@ -22,6 +22,15 @@ let isLoading = false;
 let realtimeSubscription = null;
 let isMobile = window.innerWidth <= 768;
 let currentDropdownId = null;
+let currentMode = 'general'; // 'general' or 'checkin'
+let checkinStats = {
+  total: 0,
+  test: 0,
+  consult: 0,
+  pending: 0,
+  online: 0,
+  offline: 0,
+};
 
 // ===== 페이지네이션 관련 변수 =====
 let currentPage = 1;
@@ -46,7 +55,7 @@ if (performance.navigation.type === 2) {
 }
 
 // 버전 체크 (옵션)
-const APP_VERSION = '20250820';
+const APP_VERSION = '20250122';
 const savedVersion = localStorage.getItem('app_version');
 if (savedVersion !== APP_VERSION) {
   localStorage.clear();
@@ -76,9 +85,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   // 이벤트 리스너
   setupEventListeners();
-
-  // 자동 새로고침 제거 (Supabase Realtime 사용)
-  // 30초 자동 새로고침 제거됨
 });
 
 // ===== 디바이스 체크 =====
@@ -153,6 +159,11 @@ async function loadData(showLoadingState = true) {
     updateSeminarStats();
     applyFilters();
     updateConnectionStatus('connected');
+
+    // 체크인 모드면 체크인 통계도 업데이트
+    if (currentMode === 'checkin') {
+      loadCheckinStats();
+    }
   } catch (error) {
     console.error('데이터 로드 실패:', error);
     showToast('데이터를 불러올 수 없습니다.', 'error');
@@ -163,6 +174,308 @@ async function loadData(showLoadingState = true) {
       showLoading(false);
     }
   }
+}
+
+// ===== 모드 전환 함수 =====
+function switchMode(mode) {
+  currentMode = mode;
+
+  // 탭 활성화 상태 변경
+  document.querySelectorAll('.mode-tab').forEach((tab) => {
+    tab.classList.remove('active');
+  });
+  event.target.classList.add('active');
+
+  // body 클래스 토글
+  if (mode === 'checkin') {
+    document.body.classList.add('checkin-mode');
+
+    // 체크인 통계 섹션 표시
+    document.getElementById('checkinStatsSection').classList.remove('hidden');
+
+    // 체크인 필터 표시
+    document.getElementById('checkinFilterGroup').classList.remove('hidden');
+    document.getElementById('checkinQuickFilters').classList.remove('hidden');
+
+    // 일반 통계 숨기기
+    document.querySelector('.stats-section').style.display = 'none';
+
+    // 체크인 통계 로드
+    loadCheckinStats();
+
+    // 체크인한 사람만 필터링
+    applyCheckinFilter();
+  } else {
+    document.body.classList.remove('checkin-mode');
+
+    // 체크인 통계 섹션 숨기기
+    document.getElementById('checkinStatsSection').classList.add('hidden');
+
+    // 체크인 필터 숨기기
+    document.getElementById('checkinFilterGroup').classList.add('hidden');
+    document.getElementById('checkinQuickFilters').classList.add('hidden');
+
+    // 일반 통계 표시
+    document.querySelector('.stats-section').style.display = 'block';
+
+    // 일반 필터링
+    applyFilters();
+  }
+}
+
+// ===== 체크인 통계 로드 =====
+function loadCheckinStats() {
+  // 초기화
+  checkinStats = {
+    total: 0,
+    test: 0,
+    consult: 0,
+    pending: 0,
+    online: 0,
+    offline: 0,
+  };
+
+  // 체크인한 예약들만 필터
+  const checkedInReservations = allReservations.filter(
+    (r) => r.status === '참석' && r.attendance_checked_at
+  );
+
+  checkedInReservations.forEach((r) => {
+    checkinStats.total++;
+
+    // 선택 통계
+    if (r.post_checkin_choice === 'test') {
+      checkinStats.test++;
+    } else if (r.post_checkin_choice === 'consult') {
+      checkinStats.consult++;
+    } else {
+      checkinStats.pending++;
+    }
+
+    // 등록 방식 통계
+    if (r.checkin_type === 'offline') {
+      checkinStats.offline++;
+    } else {
+      checkinStats.online++;
+    }
+  });
+
+  // UI 업데이트
+  updateCheckinStatsUI();
+}
+
+// ===== 체크인 통계 UI 업데이트 =====
+function updateCheckinStatsUI() {
+  // 메인 통계
+  document.getElementById('totalCheckins').textContent = checkinStats.total;
+  document.getElementById('testRequests').textContent = checkinStats.test;
+  document.getElementById('consultRequests').textContent = checkinStats.consult;
+  document.getElementById('pendingChoice').textContent = checkinStats.pending;
+
+  // 퍼센트 계산
+  if (checkinStats.total > 0) {
+    const testPercent = Math.round(
+      (checkinStats.test / checkinStats.total) * 100
+    );
+    const consultPercent = Math.round(
+      (checkinStats.consult / checkinStats.total) * 100
+    );
+
+    document.getElementById('testPercent').textContent = `${testPercent}%`;
+    document.getElementById(
+      'consultPercent'
+    ).textContent = `${consultPercent}%`;
+  } else {
+    document.getElementById('testPercent').textContent = '0%';
+    document.getElementById('consultPercent').textContent = '0%';
+  }
+
+  // 등록 방식
+  document.getElementById('onlineCount').textContent = checkinStats.online;
+  document.getElementById('offlineCount').textContent = checkinStats.offline;
+}
+
+// ===== 체크인 필터 적용 =====
+function applyCheckinFilter() {
+  // 체크인한 사람만 필터
+  filteredReservations = allReservations.filter(
+    (r) => r.status === '참석' && r.attendance_checked_at
+  );
+
+  // 추가 필터 적용
+  const choiceFilter = document.getElementById('filterChoice')?.value;
+  if (choiceFilter) {
+    if (choiceFilter === 'none') {
+      filteredReservations = filteredReservations.filter(
+        (r) => !r.post_checkin_choice
+      );
+    } else {
+      filteredReservations = filteredReservations.filter(
+        (r) => r.post_checkin_choice === choiceFilter
+      );
+    }
+  }
+
+  // 기존 필터도 적용
+  if (currentFilters.seminar) {
+    filteredReservations = filteredReservations.filter(
+      (r) => r.seminar_id === currentFilters.seminar
+    );
+  }
+
+  updateTable();
+}
+
+// ===== 체크인 선택별 빠른 필터 =====
+function filterByChoice(choice) {
+  // 버튼 활성화 상태 변경
+  document
+    .querySelectorAll('.checkin-quick-filters .quick-filter-btn')
+    .forEach((btn) => {
+      btn.classList.remove('active');
+    });
+  event.target.classList.add('active');
+
+  // 필터 적용
+  if (choice === 'all') {
+    document.getElementById('filterChoice').value = '';
+  } else if (choice === 'none') {
+    document.getElementById('filterChoice').value = 'none';
+  } else {
+    document.getElementById('filterChoice').value = choice;
+  }
+
+  applyCheckinFilter();
+}
+
+// ===== 진단검사 신청자 엑셀 다운로드 =====
+function exportTestList() {
+  const testList = allReservations.filter(
+    (r) =>
+      r.status === '참석' &&
+      r.attendance_checked_at &&
+      r.post_checkin_choice === 'test'
+  );
+
+  if (testList.length === 0) {
+    showToast('진단검사 신청자가 없습니다.', 'warning');
+    return;
+  }
+
+  let csv = '\uFEFF'; // BOM
+  csv += '번호,학생명,학부모연락처,학교,학년,수학선행,체크인시간,등록방식\n';
+
+  testList.forEach((r, index) => {
+    csv += `${index + 1},`;
+    csv += `"${r.student_name}",`;
+    csv += `"${formatPhoneNumber(r.parent_phone)}",`;
+    csv += `"${r.school}",`;
+    csv += `"${r.grade}",`;
+    csv += `"${r.math_level || '-'}",`;
+    csv += `"${formatDateTime(r.attendance_checked_at)}",`;
+    csv += `"${r.checkin_type === 'offline' ? '현장등록' : '온라인예약'}"\n`;
+  });
+
+  // 다운로드
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `진단검사_신청자_${new Date().toLocaleDateString(
+    'ko-KR'
+  )}.csv`;
+  link.click();
+
+  showToast(
+    `진단검사 신청자 ${testList.length}명 명단이 다운로드되었습니다.`,
+    'success'
+  );
+}
+
+// ===== 상담 요청자 엑셀 다운로드 =====
+function exportConsultList() {
+  const consultList = allReservations.filter(
+    (r) =>
+      r.status === '참석' &&
+      r.attendance_checked_at &&
+      r.post_checkin_choice === 'consult'
+  );
+
+  if (consultList.length === 0) {
+    showToast('상담 요청자가 없습니다.', 'warning');
+    return;
+  }
+
+  let csv = '\uFEFF'; // BOM
+  csv += '번호,학생명,학부모연락처,학교,학년,수학선행,체크인시간,등록방식\n';
+
+  consultList.forEach((r, index) => {
+    csv += `${index + 1},`;
+    csv += `"${r.student_name}",`;
+    csv += `"${formatPhoneNumber(r.parent_phone)}",`;
+    csv += `"${r.school}",`;
+    csv += `"${r.grade}",`;
+    csv += `"${r.math_level || '-'}",`;
+    csv += `"${formatDateTime(r.attendance_checked_at)}",`;
+    csv += `"${r.checkin_type === 'offline' ? '현장등록' : '온라인예약'}"\n`;
+  });
+
+  // 다운로드
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `상담_요청자_${new Date().toLocaleDateString('ko-KR')}.csv`;
+  link.click();
+
+  showToast(
+    `상담 요청자 ${consultList.length}명 명단이 다운로드되었습니다.`,
+    'success'
+  );
+}
+
+// ===== 전체 체크인 명단 엑셀 다운로드 =====
+function exportAllCheckins() {
+  const checkinList = allReservations.filter(
+    (r) => r.status === '참석' && r.attendance_checked_at
+  );
+
+  if (checkinList.length === 0) {
+    showToast('체크인한 참석자가 없습니다.', 'warning');
+    return;
+  }
+
+  let csv = '\uFEFF'; // BOM
+  csv +=
+    '번호,학생명,학부모연락처,학교,학년,수학선행,선택,체크인시간,등록방식\n';
+
+  checkinList.forEach((r, index) => {
+    let choice = '미선택';
+    if (r.post_checkin_choice === 'test') choice = '진단검사';
+    else if (r.post_checkin_choice === 'consult') choice = '상담요청';
+
+    csv += `${index + 1},`;
+    csv += `"${r.student_name}",`;
+    csv += `"${formatPhoneNumber(r.parent_phone)}",`;
+    csv += `"${r.school}",`;
+    csv += `"${r.grade}",`;
+    csv += `"${r.math_level || '-'}",`;
+    csv += `"${choice}",`;
+    csv += `"${formatDateTime(r.attendance_checked_at)}",`;
+    csv += `"${r.checkin_type === 'offline' ? '현장등록' : '온라인예약'}"\n`;
+  });
+
+  // 다운로드
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `전체_체크인_명단_${new Date().toLocaleDateString(
+    'ko-KR'
+  )}.csv`;
+  link.click();
+
+  showToast(
+    `체크인 참석자 ${checkinList.length}명 명단이 다운로드되었습니다.`,
+    'success'
+  );
 }
 
 // ===== 전환율 데이터 로드 =====
@@ -421,6 +734,11 @@ window.updateFunnelPeriod = function () {
 };
 
 window.openQRGenerator = openQRGenerator;
+window.switchMode = switchMode;
+window.filterByChoice = filterByChoice;
+window.exportTestList = exportTestList;
+window.exportConsultList = exportConsultList;
+window.exportAllCheckins = exportAllCheckins;
 
 // ===== 실시간 구독 =====
 function setupRealtimeSubscription() {
@@ -473,6 +791,11 @@ function handleRealtimeChange(payload) {
   updateSeminarStats();
   applyFilters();
   loadFunnelData(); // 전환율도 업데이트
+
+  // 체크인 모드면 체크인 통계도 업데이트
+  if (currentMode === 'checkin') {
+    loadCheckinStats();
+  }
 }
 
 // ===== 통계 업데이트 =====
@@ -492,11 +815,49 @@ function updateStats() {
     if (r.status !== '대기') stats.total++;
   });
 
-  // 미니 카드 업데이트
-  animateNumber('totalAll', stats.total);
-  animateNumber('totalAttended', stats.attended);
-  animateNumber('totalPending', stats.pending);
-  animateNumber('totalCancelled', stats.cancelled);
+  // 미니 카드 업데이트 - animateNumber에서 처리
+  const totalElement = document.getElementById('totalAll');
+  if (totalElement) animateNumber(totalElement, stats.total);
+
+  const attendedElement = document.getElementById('totalAttended');
+  if (attendedElement) animateNumber(attendedElement, stats.attended);
+
+  const pendingElement = document.getElementById('totalPending');
+  if (pendingElement) animateNumber(pendingElement, stats.pending);
+
+  const cancelledElement = document.getElementById('totalCancelled');
+  if (cancelledElement) animateNumber(cancelledElement, stats.cancelled);
+}
+
+// animateNumber 함수 수정
+function animateNumber(element, target) {
+  if (!element) return;
+
+  const currentText = element.textContent || '0';
+  const start = parseInt(currentText.replace(/[^0-9]/g, '')) || 0;
+
+  if (start === target) {
+    element.textContent = target.toString();
+    return;
+  }
+
+  const duration = 500;
+  const steps = 20;
+  const increment = (target - start) / steps;
+  let current = start;
+  let step = 0;
+
+  const timer = setInterval(() => {
+    step++;
+    current += increment;
+
+    if (step >= steps) {
+      element.textContent = target.toString();
+      clearInterval(timer);
+    } else {
+      element.textContent = Math.floor(current).toString();
+    }
+  }, duration / steps);
 }
 
 // ===== 설명회별 통계 (재참석자 포함) =====
@@ -683,6 +1044,12 @@ function quickFilter(type) {
 
 // ===== 필터 적용 =====
 function applyFilters() {
+  // 체크인 모드면 체크인 필터 적용
+  if (currentMode === 'checkin') {
+    applyCheckinFilter();
+    return;
+  }
+
   // 필터 값 가져오기
   currentFilters = {
     seminar: document.getElementById('filterSeminar').value,
@@ -1407,31 +1774,6 @@ function updateSeminarFilter() {
 
   // 이전 선택값 복원
   select.value = currentValue;
-}
-
-// 숫자 애니메이션 (id 방식)
-function animateNumber(elementId, target) {
-  const element = document.getElementById(elementId);
-  if (!element) return;
-
-  const current = parseInt(element.textContent) || 0;
-  if (current === target) return;
-
-  const increment = target > current ? 1 : -1;
-  const step = Math.abs(target - current) / 20;
-
-  let value = current;
-  const timer = setInterval(() => {
-    value += increment * Math.ceil(step);
-    if (
-      (increment > 0 && value >= target) ||
-      (increment < 0 && value <= target)
-    ) {
-      value = target;
-      clearInterval(timer);
-    }
-    element.textContent = value;
-  }, 30);
 }
 
 // 날짜 포맷팅

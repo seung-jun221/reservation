@@ -9,6 +9,8 @@ let currentSeminar = null;
 let duplicateReservations = [];
 let selectedReservation = null;
 let isTestMode = false;
+let currentPhone = '';
+let isOfflineRegistration = false;
 
 // ===== 초기화 =====
 document.addEventListener('DOMContentLoaded', async function () {
@@ -69,8 +71,8 @@ async function loadSeminar(seminarId) {
       }
 
       // 설명회 시작 1시간 전부터 종료 2시간 후까지만 체크인 가능
-      const checkInStartTime = new Date(seminarDate.getTime() - 60 * 60 * 1000); // 1시간 전
-      const checkInEndTime = new Date(seminarDate.getTime() + 180 * 60 * 1000); // 3시간 후
+      const checkInStartTime = new Date(seminarDate.getTime() - 60 * 60 * 1000);
+      const checkInEndTime = new Date(seminarDate.getTime() + 180 * 60 * 1000);
 
       if (now < checkInStartTime || now > checkInEndTime) {
         hideLoading();
@@ -122,6 +124,12 @@ function setupEventListeners() {
     duplicateForm.addEventListener('submit', handleDuplicateSubmit);
   }
 
+  // 오프라인 등록 폼
+  const offlineForm = document.getElementById('offlineForm');
+  if (offlineForm) {
+    offlineForm.addEventListener('submit', handleOfflineSubmit);
+  }
+
   // 전화번호 입력 자동 포맷
   const phoneLast4 = document.getElementById('phoneLast4');
   if (phoneLast4) {
@@ -165,16 +173,16 @@ async function handlePhoneSubmit(event) {
     hideLoading();
 
     if (!reservations || reservations.length === 0) {
-      showError(
-        '예약을 찾을 수 없습니다',
-        '예약 시 등록한 전화번호를 확인해주세요.'
-      );
+      // 예약이 없는 경우 - 현장 등록으로 진행
+      currentPhone = `010****${last4}`;
+      showOfflineRegistration(last4);
       return;
     }
 
     if (reservations.length === 1) {
       // 중복 없음 - 바로 체크인 처리
       selectedReservation = reservations[0];
+      isOfflineRegistration = false;
       await processCheckIn();
     } else {
       // 중복 발견 - 추가 확인 필요
@@ -185,6 +193,83 @@ async function handlePhoneSubmit(event) {
     console.error('예약 확인 실패:', error);
     hideLoading();
     showToast('오류가 발생했습니다. 다시 시도해주세요.', 'error');
+  }
+}
+
+// ===== 현장 등록 화면 표시 =====
+function showOfflineRegistration(last4) {
+  // 전화번호 표시
+  document.getElementById('offlinePhone').value = `010-****-${last4}`;
+
+  // 화면 전환
+  showStep('infoStep');
+
+  // 포커스 설정
+  setTimeout(() => {
+    document.getElementById('offlineStudentName').focus();
+  }, 100);
+}
+
+// ===== 현장 등록 처리 =====
+async function handleOfflineSubmit(event) {
+  event.preventDefault();
+
+  const studentName = document
+    .getElementById('offlineStudentName')
+    .value.trim();
+  const school = document.getElementById('offlineSchool').value.trim();
+  const grade = document.getElementById('offlineGrade').value;
+  const mathLevel = document.getElementById('offlineMathLevel').value.trim();
+  const privacyConsent = document.getElementById('offlinePrivacy').checked;
+
+  if (!privacyConsent) {
+    showToast('개인정보 수집 및 이용에 동의해주세요.', 'error');
+    return;
+  }
+
+  showLoading('체크인 처리 중...');
+
+  try {
+    // 간단한 비밀번호 생성 (현장등록은 000000)
+    const hashedPassword = hashPassword('000000');
+
+    // 예약 데이터 생성
+    const reservationData = {
+      reservation_id: 'OFFLINE' + Date.now(),
+      seminar_id: currentSeminar.id,
+      student_name: studentName,
+      parent_phone: currentPhone,
+      school: school,
+      grade: grade,
+      math_level: mathLevel,
+      password: hashedPassword,
+      privacy_consent: 'Y',
+      status: '참석',
+      attendance: '참석',
+      attendance_checked_at: new Date().toISOString(),
+      attendance_checked_by: 'QR체크인(현장)',
+      checkin_type: 'offline',
+      notes: '현장 등록',
+    };
+
+    const { data, error } = await supabase
+      .from('reservations')
+      .insert([reservationData])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    selectedReservation = data;
+    isOfflineRegistration = true;
+
+    hideLoading();
+    showToast('체크인이 완료되었습니다!', 'success');
+    showCompleteStep();
+  } catch (error) {
+    console.error('현장 등록 실패:', error);
+    hideLoading();
+    showToast('등록 처리 중 오류가 발생했습니다.', 'error');
   }
 }
 
@@ -221,11 +306,14 @@ async function handleDuplicateSubmit(event) {
   );
 
   if (!matched) {
-    showToast('일치하는 예약을 찾을 수 없습니다', 'error');
+    // 일치하는 예약이 없으면 현장 등록으로
+    currentPhone = `010${middle4}${last4}`;
+    showOfflineRegistration(last4);
     return;
   }
 
   selectedReservation = matched;
+  isOfflineRegistration = false;
   await processCheckIn();
 }
 
@@ -255,6 +343,7 @@ async function processCheckIn() {
         attendance: '참석',
         attendance_checked_at: new Date().toISOString(),
         attendance_checked_by: 'QR체크인',
+        checkin_type: 'online',
       })
       .eq('id', selectedReservation.id);
 
@@ -278,91 +367,84 @@ function showCompleteStep() {
     nameElement.textContent = `${selectedReservation.student_name} 학부모님`;
   }
 
-  // 혜택 타이머 (오늘 자정까지)
-  updateBenefitTimer();
-
   // 화면 전환
   showStep('completeStep');
 }
 
-// ===== 혜택 타이머 업데이트 =====
-function updateBenefitTimer() {
-  const now = new Date();
-  const midnight = new Date(now);
-  midnight.setHours(23, 59, 59, 999);
+// ===== 진단검사 선택 =====
+async function selectTest() {
+  if (!selectedReservation) return;
 
-  const updateTimer = () => {
-    const current = new Date();
-    const remaining = midnight - current;
-
-    if (remaining <= 0) {
-      const timerElement = document.getElementById('benefitTimer');
-      if (timerElement) {
-        timerElement.textContent = '종료됨';
-        timerElement.style.color = 'var(--gray-500)';
-      }
-      return;
-    }
-
-    const hours = Math.floor(remaining / (1000 * 60 * 60));
-    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-
-    const timerElement = document.getElementById('benefitTimer');
-    if (timerElement) {
-      timerElement.textContent = `${String(hours).padStart(2, '0')}:${String(
-        minutes
-      ).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    }
-  };
-
-  updateTimer();
-  setInterval(updateTimer, 1000); // 1초마다 업데이트
-}
-
-// ===== 컨설팅 예약 페이지로 이동 =====
-function goToConsulting() {
-  // 컨설팅 예약 페이지로 이동 (추후 구현)
-  const consultingUrl = `/consulting.html?code=${selectedReservation.reservation_id.slice(
-    -4
-  )}`;
-  window.location.href = consultingUrl;
-}
-
-// ===== 링크 복사 =====
-async function copyLink() {
-  const consultingUrl = `${window.location.origin}/consulting.html?ref=${selectedReservation.reservation_id}`;
+  showLoading('처리 중...');
 
   try {
-    await navigator.clipboard.writeText(consultingUrl);
+    // 선택 저장
+    const { error } = await supabase
+      .from('reservations')
+      .update({
+        post_checkin_choice: 'test',
+        post_checkin_at: new Date().toISOString(),
+      })
+      .eq('id', selectedReservation.id);
 
-    // 버튼 텍스트 변경
-    const copyBtn = document.querySelector('.btn-copy');
-    const originalText = copyBtn.textContent;
-    copyBtn.textContent = '복사 완료!';
-    copyBtn.style.background = 'var(--success-color)';
-    copyBtn.style.color = 'white';
+    if (error) throw error;
 
-    setTimeout(() => {
-      copyBtn.textContent = originalText;
-      copyBtn.style.background = '';
-      copyBtn.style.color = '';
-    }, 2000);
+    hideLoading();
 
-    showToast(
-      '링크가 복사되었습니다! 카카오톡 나와의 채팅에 붙여넣기 해주세요.',
-      'success'
-    );
-  } catch (err) {
-    console.error('복사 실패:', err);
-    showToast('링크 복사에 실패했습니다.', 'error');
+    // 최종 안내 화면 표시
+    document.getElementById('finalIcon').textContent = '📝';
+    document.getElementById('finalTitle').textContent =
+      '진단검사 신청이 완료되었습니다';
+    document.getElementById('finalDesc').textContent =
+      '오늘중으로 진단검사를 예약할 수 있는 링크를 발송해드리겠습니다.';
+
+    showStep('finalStep');
+  } catch (error) {
+    console.error('선택 저장 실패:', error);
+    hideLoading();
+    showToast('처리 중 오류가 발생했습니다.', 'error');
   }
 }
 
-// ===== 카카오톡 공유 =====
-function shareKakao() {
-  // 카카오톡 공유 (Kakao SDK 필요)
-  showToast('카카오톡 공유 기능은 준비 중입니다.', 'info');
+// ===== 상담 선택 =====
+async function selectConsult() {
+  if (!selectedReservation) return;
+
+  showLoading('처리 중...');
+
+  try {
+    // 선택 저장
+    const { error } = await supabase
+      .from('reservations')
+      .update({
+        post_checkin_choice: 'consult',
+        post_checkin_at: new Date().toISOString(),
+      })
+      .eq('id', selectedReservation.id);
+
+    if (error) throw error;
+
+    hideLoading();
+
+    // 최종 안내 화면 표시
+    document.getElementById('finalIcon').textContent = '💬';
+    document.getElementById('finalTitle').textContent =
+      '상담 요청이 완료되었습니다';
+    document.getElementById('finalDesc').textContent =
+      '내일까지 개별 전화연락드리겠습니다.';
+
+    showStep('finalStep');
+  } catch (error) {
+    console.error('선택 저장 실패:', error);
+    hideLoading();
+    showToast('처리 중 오류가 발생했습니다.', 'error');
+  }
+}
+
+// ===== 현장 예약 진행 =====
+function proceedOfflineReg() {
+  const last4 = document.getElementById('phoneLast4').value || '0000';
+  showOfflineRegistration(last4);
 }
 
 // ===== 홈으로 이동 =====
@@ -374,11 +456,6 @@ function goHome() {
 function backToPhoneStep() {
   showStep('phoneStep');
   document.getElementById('phoneMiddle4').value = '';
-}
-
-// ===== 다시 시도 =====
-function retryCheckIn() {
-  location.reload();
 }
 
 // ===== 화면 전환 =====
@@ -454,6 +531,19 @@ function showToast(message, type = 'info') {
 
 // ===== 유틸리티 함수 =====
 
+// 비밀번호 해싱
+function hashPassword(password) {
+  const SECURITY_SALT = 'math-morning-2025-secret';
+  const str = password + SECURITY_SALT;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(16);
+}
+
 // 날짜 포맷팅
 function formatDate(dateStr) {
   const date = new Date(dateStr);
@@ -469,7 +559,6 @@ function formatTime(timeStr) {
   let date;
 
   if (typeof timeStr === 'string' && timeStr.includes(':')) {
-    // "10:30" 또는 "10:30:00" 형식 처리
     const timeParts = timeStr.split(':');
     const hours = parseInt(timeParts[0]);
     const minutes = parseInt(timeParts[1]);
@@ -477,10 +566,8 @@ function formatTime(timeStr) {
     date = new Date();
     date.setHours(hours, minutes);
   } else if (timeStr instanceof Date) {
-    // Date 객체인 경우
     date = timeStr;
   } else {
-    // ISO 문자열 등 다른 형식
     date = new Date(timeStr);
   }
 
@@ -494,9 +581,8 @@ function formatTime(timeStr) {
 }
 
 // ===== 전역 함수 등록 (HTML에서 호출) =====
-window.goToConsulting = goToConsulting;
-window.copyLink = copyLink;
-window.shareKakao = shareKakao;
+window.selectTest = selectTest;
+window.selectConsult = selectConsult;
 window.goHome = goHome;
 window.backToPhoneStep = backToPhoneStep;
-window.retryCheckIn = retryCheckIn;
+window.proceedOfflineReg = proceedOfflineReg;

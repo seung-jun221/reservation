@@ -15,7 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="assets/css/checkin.css?v=20250121" />
+    <link rel="stylesheet" href="assets/css/checkin.css?v=20250122" />
 
     <!-- Favicon -->
     <link rel="icon" href="data:," />
@@ -40,6 +40,8 @@
           <span class="step active">1</span>
           <span class="step-line"></span>
           <span class="step">2</span>
+          <span class="step-line"></span>
+          <span class="step">3</span>
         </div>
 
         <h2 class="section-title">참석 확인</h2>
@@ -75,6 +77,8 @@
           <span class="step active">1</span>
           <span class="step-line"></span>
           <span class="step">2</span>
+          <span class="step-line"></span>
+          <span class="step">3</span>
         </div>
 
         <h2 class="section-title">추가 확인이 필요합니다</h2>
@@ -105,69 +109,154 @@
         </button>
       </section>
 
-      <!-- STEP 2: 체크인 완료 (개선된 디자인) -->
-      <section class="section-card hidden" id="completeStep">
+      <!-- STEP 1-3: 정보 입력 (미등록자) -->
+      <section class="section-card hidden" id="infoStep">
         <div class="step-indicator">
           <span class="step completed">✓</span>
           <span class="step-line active"></span>
           <span class="step active">2</span>
+          <span class="step-line"></span>
+          <span class="step">3</span>
+        </div>
+
+        <h2 class="section-title">참석자 정보 입력</h2>
+        <p class="section-desc">간단한 정보를 입력해주세요</p>
+
+        <form id="offlineForm" class="info-form">
+          <div class="form-group">
+            <label>학생명 <span class="required">*</span></label>
+            <input type="text" id="offlineStudentName" required minlength="2" />
+          </div>
+
+          <div class="form-group">
+            <label>학부모 연락처 <span class="required">*</span></label>
+            <input
+              type="tel"
+              id="offlinePhone"
+              placeholder="010-0000-0000"
+              required
+              readonly
+            />
+          </div>
+
+          <div class="form-group">
+            <label>학교 <span class="required">*</span></label>
+            <input type="text" id="offlineSchool" required minlength="2" />
+          </div>
+
+          <div class="form-group">
+            <label>학년 <span class="required">*</span></label>
+            <select id="offlineGrade" required>
+              <option value="">선택하세요</option>
+              <option value="초1">초등학교 1학년</option>
+              <option value="초2">초등학교 2학년</option>
+              <option value="초3">초등학교 3학년</option>
+              <option value="초4">초등학교 4학년</option>
+              <option value="초5">초등학교 5학년</option>
+              <option value="초6">초등학교 6학년</option>
+              <option value="중1">중학교 1학년</option>
+              <option value="중2">중학교 2학년</option>
+              <option value="중3">중학교 3학년</option>
+              <option value="고1">고등학교 1학년</option>
+              <option value="고2">고등학교 2학년</option>
+              <option value="고3">고등학교 3학년</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>수학 선행정도 <span class="required">*</span></label>
+            <input
+              type="text"
+              id="offlineMathLevel"
+              placeholder="예: 중2 과정 진행중"
+              required
+              minlength="2"
+            />
+          </div>
+
+          <!-- 간소화된 개인정보 동의 -->
+          <div class="privacy-simple">
+            <label class="checkbox-container">
+              <input type="checkbox" id="offlinePrivacy" required />
+              <span class="checkbox-text">
+                [필수] 개인정보 수집 및 이용에 동의합니다
+              </span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-large">
+            체크인 완료
+          </button>
+        </form>
+      </section>
+
+      <!-- STEP 2: 체크인 완료 & 선택 -->
+      <section class="section-card hidden" id="completeStep">
+        <div class="step-indicator">
+          <span class="step completed">✓</span>
+          <span class="step-line active"></span>
+          <span class="step completed">✓</span>
+          <span class="step-line active"></span>
+          <span class="step active">3</span>
         </div>
 
         <!-- 참석 확인 메시지 -->
         <div class="complete-header">
-          <h2 class="complete-title">참석이 확인되었습니다</h2>
+          <h2 class="complete-title">✅ 체크인이 완료되었습니다</h2>
           <p class="attendee-name" id="attendeeName">홍길동 학부모님</p>
-          <p class="brand-message">"아이의 생각하는 힘을 키워갑니다"</p>
-          <p class="brand-name">수리탐구 i.study</p>
         </div>
 
-        <!-- 컨설팅 혜택 안내 -->
-        <div class="consulting-benefit">
-          <div class="benefit-badge">설명회 참석자 특별 혜택</div>
+        <!-- 선택 옵션 -->
+        <div class="choice-section">
+          <h3 class="choice-title">다음 단계를 선택해주세요</h3>
 
-          <h3 class="benefit-title">
-            오늘 하루만 제공되는<br />
-            1:1 맞춤 컨설팅 우선 예약
-          </h3>
+          <div class="choice-buttons">
+            <button class="choice-btn test-btn" onclick="selectTest()">
+              <div class="choice-icon">📝</div>
+              <div class="choice-content">
+                <h4>입학 진단검사 신청하기</h4>
+                <p>무료 레벨테스트로 정확한 실력 진단</p>
+              </div>
+            </button>
 
-          <ul class="benefit-features">
-            <li>참석자 전용 시간대 선택</li>
-            <li>대표이사와의 개별 컨설팅</li>
-            <li>개인별 맞춤 학습 로드맵</li>
-          </ul>
-
-          <div class="timer-container">
-            <span class="timer-label">남은 시간</span>
-            <span class="timer-value" id="benefitTimer">23:59:00</span>
+            <button class="choice-btn consult-btn" onclick="selectConsult()">
+              <div class="choice-icon">💬</div>
+              <div class="choice-content">
+                <h4>진단검사 전 상담요청</h4>
+                <p>먼저 상담 후 진단검사 일정 조율</p>
+              </div>
+            </button>
           </div>
 
-          <button
-            class="btn btn-primary btn-large btn-consulting"
-            onclick="goToConsulting()"
-          >
-            지금 컨설팅 예약하기
-          </button>
+          <div class="course-link">
+            <a
+              href="https://pickled-brisket-622.notion.site/2134efc453d18082a8c9caf3e30f3f81"
+              target="_blank"
+              class="link-text"
+            >
+              📚 수업 상세 보기 >
+            </a>
+          </div>
         </div>
+      </section>
 
-        <!-- 나중에 예약 옵션 -->
-        <div class="later-section">
-          <p class="later-title">나중에 예약하시겠어요?</p>
-
-          <button class="btn btn-outline btn-copy" onclick="copyLink()">
-            예약 링크 복사
-          </button>
-
-          <div class="copy-guide">
-            <p>복사 후 카카오톡 '나와의 채팅'에<br />저장해두세요</p>
+      <!-- STEP 3: 최종 안내 -->
+      <section class="section-card hidden" id="finalStep">
+        <div class="final-message">
+          <div class="final-icon" id="finalIcon">✅</div>
+          <h2 class="final-title" id="finalTitle">신청이 완료되었습니다</h2>
+          <p class="final-desc" id="finalDesc">
+            오늘중으로 진단검사 예약 링크를 발송해드리겠습니다.
+          </p>
+          <div class="final-info">
+            <p>문의사항이 있으시면 언제든 연락주세요.</p>
+            <p class="contact-info">📞 상담실: 02-1234-5678</p>
           </div>
         </div>
 
-        <!-- 홈으로 -->
-        <div class="footer-action">
-          <button class="btn btn-text" onclick="goHome()">
-            홈으로 돌아가기
-          </button>
-        </div>
+        <button class="btn btn-primary" onclick="goHome()">
+          홈으로 돌아가기
+        </button>
       </section>
 
       <!-- 에러 상태 -->
@@ -177,24 +266,16 @@
           <h2 class="error-title">예약을 찾을 수 없습니다</h2>
           <p class="error-desc">
             입력하신 전화번호로 예약된 내역이 없습니다.<br />
-            예약 시 등록한 번호를 다시 확인해주세요.
+            현장 예약을 진행해주세요.
           </p>
         </div>
 
-        <button class="btn btn-primary" onclick="retryCheckIn()">
-          다시 시도
+        <button class="btn btn-primary" onclick="proceedOfflineReg()">
+          현장 예약 진행
         </button>
 
         <div class="help-link">
           <p>학원 상담실로 문의해주세요</p>
-        </div>
-      </section>
-
-      <!-- 로딩 상태 -->
-      <section class="section-card hidden" id="loadingStep">
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>확인 중입니다...</p>
         </div>
       </section>
     </main>
@@ -211,6 +292,6 @@
     <div id="toastContainer" class="toast-container"></div>
 
     <!-- JavaScript -->
-    <script src="assets/js/checkin.js?v=20250121"></script>
+    <script src="assets/js/checkin.js?v=20250122"></script>
   </body>
 </html>
