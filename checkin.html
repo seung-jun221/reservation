@@ -109,7 +109,7 @@
         </button>
       </section>
 
-      <!-- STEP 1-3: 정보 입력 (미등록자) -->
+      <!-- STEP 1-3: 정보 입력 (현장등록) - 수정된 부분 -->
       <section class="section-card hidden" id="infoStep">
         <div class="step-indicator">
           <span class="step completed">✓</span>
@@ -119,35 +119,99 @@
           <span class="step">3</span>
         </div>
 
-        <h2 class="section-title">참석자 정보 입력</h2>
-        <p class="section-desc">간단한 정보를 입력해주세요</p>
+        <h2 class="section-title">현장 등록</h2>
+        <p class="section-desc">참석자 정보를 입력해주세요</p>
+
+        <!-- 안내 배너 추가 -->
+        <div
+          class="offline-notice"
+          style="
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          "
+        >
+          <span style="font-size: 20px">ℹ️</span>
+          <div
+            style="flex: 1; font-size: 14px; color: #92400e; line-height: 1.4"
+          >
+            사전 예약 정보를 찾을 수 없어 현장 등록을 진행합니다.<br />
+            정확한 정보를 입력해주세요.
+          </div>
+        </div>
 
         <form id="offlineForm" class="info-form">
+          <!-- 전화번호 입력 필드 (수정됨) -->
           <div class="form-group">
-            <label>학생명 <span class="required">*</span></label>
-            <input type="text" id="offlineStudentName" required minlength="2" />
-          </div>
-
-          <div class="form-group">
-            <label>학부모 연락처 <span class="required">*</span></label>
+            <label
+              >학부모 연락처
+              <span class="required" style="color: #ef4444">*</span></label
+            >
             <input
               type="tel"
               id="offlinePhone"
               placeholder="010-0000-0000"
+              maxlength="13"
               required
-              readonly
+              style="font-size: 16px; letter-spacing: 1px"
+            />
+            <small
+              style="
+                display: block;
+                margin-top: 4px;
+                font-size: 12px;
+                color: #666;
+              "
+              >전체 전화번호를 입력해주세요</small
+            >
+          </div>
+
+          <div class="form-group">
+            <label
+              >학생명
+              <span class="required" style="color: #ef4444">*</span></label
+            >
+            <input
+              type="text"
+              id="offlineStudentName"
+              placeholder="홍길동"
+              required
+              minlength="2"
             />
           </div>
 
           <div class="form-group">
-            <label>학교 <span class="required">*</span></label>
-            <input type="text" id="offlineSchool" required minlength="2" />
+            <label
+              >학교
+              <span class="required" style="color: #ef4444">*</span></label
+            >
+            <input
+              type="text"
+              id="offlineSchool"
+              placeholder="○○중학교"
+              required
+              minlength="2"
+            />
           </div>
 
           <div class="form-group">
-            <label>학년 <span class="required">*</span></label>
+            <label
+              >학년
+              <span class="required" style="color: #ef4444">*</span></label
+            >
             <select id="offlineGrade" required>
-              <option value="">선택하세요</option>
+              <option value="">학년 선택</option>
+              <option value="예비중1">예비중1</option>
+              <option value="예비중2">예비중2</option>
+              <option value="예비중3">예비중3</option>
+              <option value="예비고1">예비고1</option>
+              <option value="예비고2">예비고2</option>
+              <option value="예비고3">예비고3</option>
               <option value="초1">초등학교 1학년</option>
               <option value="초2">초등학교 2학년</option>
               <option value="초3">초등학교 3학년</option>
@@ -164,22 +228,54 @@
           </div>
 
           <div class="form-group">
-            <label>수학 선행정도 <span class="required">*</span></label>
+            <label>수학 선행정도</label>
             <input
               type="text"
               id="offlineMathLevel"
-              placeholder="예: 중2 과정 진행중"
-              required
-              minlength="2"
+              placeholder="예: 중3-2 진행중"
             />
           </div>
 
           <!-- 간소화된 개인정보 동의 -->
-          <div class="privacy-simple">
-            <label class="checkbox-container">
-              <input type="checkbox" id="offlinePrivacy" required />
-              <span class="checkbox-text">
-                [필수] 개인정보 수집 및 이용에 동의합니다
+          <div
+            class="privacy-simple"
+            style="
+              background: #f9fafb;
+              padding: 12px;
+              border-radius: 8px;
+              margin: 16px 0;
+            "
+          >
+            <label
+              class="checkbox-container"
+              style="
+                display: flex;
+                align-items: flex-start;
+                gap: 10px;
+                cursor: pointer;
+              "
+            >
+              <input
+                type="checkbox"
+                id="offlinePrivacy"
+                required
+                style="width: 18px; height: 18px; margin-top: 2px"
+              />
+              <span
+                class="checkbox-text"
+                style="
+                  flex: 1;
+                  font-size: 14px;
+                  line-height: 1.5;
+                  color: #374151;
+                "
+              >
+                [필수] 개인정보 수집 및 이용에 동의합니다<br />
+                <small style="color: #6b7280; font-size: 12px">
+                  • 수집목적: 설명회 참석 관리 및 사후 안내<br />
+                  • 수집항목: 학생명, 학부모 연락처, 학교, 학년<br />
+                  • 보유기간: 1년
+                </small>
               </span>
             </label>
           </div>
@@ -206,6 +302,9 @@
           <p class="attendee-name" id="attendeeName">홍길동 학부모님</p>
         </div>
 
+        <!-- 추가 정보 표시 영역 -->
+        <div id="completeInfo"></div>
+
         <!-- 선택 옵션 -->
         <div class="choice-section">
           <h3 class="choice-title">다음 단계를 선택해주세요</h3>
@@ -228,11 +327,12 @@
             </button>
           </div>
 
-          <div class="course-link">
+          <div class="course-link" style="text-align: center; margin-top: 20px">
             <a
               href="https://pickled-brisket-622.notion.site/2134efc453d18082a8c9caf3e30f3f81"
               target="_blank"
               class="link-text"
+              style="color: #4f46e5; text-decoration: none; font-weight: 600"
             >
               📚 수업 상세 보기 >
             </a>
@@ -242,15 +342,43 @@
 
       <!-- STEP 3: 최종 안내 -->
       <section class="section-card hidden" id="finalStep">
-        <div class="final-message">
-          <div class="final-icon" id="finalIcon">✅</div>
-          <h2 class="final-title" id="finalTitle">신청이 완료되었습니다</h2>
-          <p class="final-desc" id="finalDesc">
+        <div class="final-message" style="text-align: center; padding: 40px 0">
+          <div
+            class="final-icon"
+            id="finalIcon"
+            style="font-size: 64px; margin-bottom: 20px"
+          >
+            ✅
+          </div>
+          <h2
+            class="final-title"
+            id="finalTitle"
+            style="font-size: 24px; font-weight: 700; margin-bottom: 12px"
+          >
+            신청이 완료되었습니다
+          </h2>
+          <p
+            class="final-desc"
+            id="finalDesc"
+            style="font-size: 16px; color: #6b7280; margin-bottom: 30px"
+          >
             오늘중으로 진단검사 예약 링크를 발송해드리겠습니다.
           </p>
-          <div class="final-info">
-            <p>문의사항이 있으시면 언제든 연락주세요.</p>
-            <p class="contact-info">📞 상담실: 02-1234-5678</p>
+          <div
+            class="final-info"
+            style="
+              background: #f9fafb;
+              padding: 20px;
+              border-radius: 8px;
+              margin-bottom: 30px;
+            "
+          >
+            <p style="margin-bottom: 8px">
+              문의사항이 있으시면 언제든 연락주세요.
+            </p>
+            <p class="contact-info" style="font-weight: 600">
+              📞 상담실: 031-698-3400
+            </p>
           </div>
         </div>
 
@@ -261,10 +389,20 @@
 
       <!-- 에러 상태 -->
       <section class="section-card hidden" id="errorStep">
-        <div class="error-message">
-          <div class="error-icon">⚠️</div>
-          <h2 class="error-title">예약을 찾을 수 없습니다</h2>
-          <p class="error-desc">
+        <div class="error-message" style="text-align: center; padding: 40px 0">
+          <div class="error-icon" style="font-size: 64px; margin-bottom: 20px">
+            ⚠️
+          </div>
+          <h2
+            class="error-title"
+            style="font-size: 20px; font-weight: 700; margin-bottom: 12px"
+          >
+            예약을 찾을 수 없습니다
+          </h2>
+          <p
+            class="error-desc"
+            style="font-size: 14px; color: #6b7280; margin-bottom: 30px"
+          >
             입력하신 전화번호로 예약된 내역이 없습니다.<br />
             현장 예약을 진행해주세요.
           </p>
@@ -274,8 +412,10 @@
           현장 예약 진행
         </button>
 
-        <div class="help-link">
-          <p>학원 상담실로 문의해주세요</p>
+        <div class="help-link" style="text-align: center; margin-top: 20px">
+          <p style="font-size: 13px; color: #6b7280">
+            학원 상담실로 문의해주세요
+          </p>
         </div>
       </section>
     </main>

@@ -144,9 +144,27 @@ function setupEventListeners() {
       e.target.value = e.target.value.replace(/[^0-9]/g, '');
     });
   }
+
+  // 현장등록 전화번호 자동 포맷팅 추가
+  const offlinePhone = document.getElementById('offlinePhone');
+  if (offlinePhone) {
+    offlinePhone.addEventListener('input', function (e) {
+      let value = e.target.value.replace(/[^0-9]/g, '');
+
+      if (value.length > 3 && value.length <= 7) {
+        value = value.replace(/(\d{3})(\d{1,4})/, '$1-$2');
+      } else if (value.length > 7 && value.length <= 10) {
+        value = value.replace(/(\d{3})(\d{3})(\d{1,4})/, '$1-$2-$3');
+      } else if (value.length > 10) {
+        value = value.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+      }
+
+      e.target.value = value;
+    });
+  }
 }
 
-// ===== 전화번호 제출 처리 =====
+// ===== 전화번호 제출 처리 (수정) =====
 async function handlePhoneSubmit(event) {
   event.preventDefault();
 
@@ -173,9 +191,15 @@ async function handlePhoneSubmit(event) {
     hideLoading();
 
     if (!reservations || reservations.length === 0) {
-      // 예약이 없는 경우 - 현장 등록으로 진행
-      currentPhone = `010****${last4}`;
-      showOfflineRegistration(last4);
+      // 예약이 없는 경우 - 팝업 메시지 후 현장 등록으로 진행
+      showToast('개인정보 확인이 안되어 입력창으로 이동합니다.', 'info');
+
+      // 짧은 딜레이 후 현장 등록 화면으로 이동
+      setTimeout(() => {
+        // currentPhone 초기화 (전체 번호를 받을 준비)
+        currentPhone = '';
+        showOfflineRegistration(last4);
+      }, 1500);
       return;
     }
 
@@ -196,24 +220,35 @@ async function handlePhoneSubmit(event) {
   }
 }
 
-// ===== 현장 등록 화면 표시 =====
+// ===== 현장 등록 화면 표시 (수정) =====
 function showOfflineRegistration(last4) {
-  // 전화번호 표시
-  document.getElementById('offlinePhone').value = `010-****-${last4}`;
+  // 전체 전화번호 입력 필드로 변경
+  const phoneInput = document.getElementById('offlinePhone');
+
+  // 뒷 4자리만 미리 채워두고 앞자리 입력 가능하게
+  phoneInput.value = '';
+  phoneInput.placeholder = '010-0000-0000';
+  phoneInput.setAttribute('data-last4', last4); // 뒷 4자리 저장
+
+  // readonly 속성 제거하여 편집 가능하게
+  phoneInput.removeAttribute('readonly');
 
   // 화면 전환
   showStep('infoStep');
 
-  // 포커스 설정
+  // 전화번호 입력 필드에 포커스
   setTimeout(() => {
-    document.getElementById('offlineStudentName').focus();
+    phoneInput.focus();
+    // 안내 메시지 표시
+    showToast('전체 전화번호를 입력해주세요', 'info');
   }, 100);
 }
 
-// ===== 현장 등록 처리 =====
+// ===== 현장 등록 처리 (수정) =====
 async function handleOfflineSubmit(event) {
   event.preventDefault();
 
+  const phoneValue = document.getElementById('offlinePhone').value.trim();
   const studentName = document
     .getElementById('offlineStudentName')
     .value.trim();
@@ -221,6 +256,32 @@ async function handleOfflineSubmit(event) {
   const grade = document.getElementById('offlineGrade').value;
   const mathLevel = document.getElementById('offlineMathLevel').value.trim();
   const privacyConsent = document.getElementById('offlinePrivacy').checked;
+
+  // 전화번호 유효성 검사
+  const phoneRegex = /^01[0-9]-?[0-9]{3,4}-?[0-9]{4}$/;
+  const cleanPhone = phoneValue.replace(/-/g, '');
+
+  if (!phoneRegex.test(cleanPhone)) {
+    showToast('올바른 전화번호 형식을 입력해주세요 (010-0000-0000)', 'error');
+    return;
+  }
+
+  // 전화번호 포맷팅 (하이픈 추가)
+  let formattedPhone = cleanPhone;
+  if (cleanPhone.length === 11) {
+    formattedPhone = cleanPhone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+  } else if (cleanPhone.length === 10) {
+    formattedPhone = cleanPhone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+  }
+
+  // 뒷 4자리 검증 (필요한 경우)
+  const last4 = document
+    .getElementById('offlinePhone')
+    .getAttribute('data-last4');
+  if (last4 && !formattedPhone.endsWith(last4)) {
+    showToast('입력한 전화번호 뒷 4자리가 일치하지 않습니다.', 'error');
+    return;
+  }
 
   if (!privacyConsent) {
     showToast('개인정보 수집 및 이용에 동의해주세요.', 'error');
@@ -233,12 +294,15 @@ async function handleOfflineSubmit(event) {
     // 간단한 비밀번호 생성 (현장등록은 000000)
     const hashedPassword = hashPassword('000000');
 
+    // 실제 전화번호 저장
+    currentPhone = formattedPhone;
+
     // 예약 데이터 생성
     const reservationData = {
       reservation_id: 'OFFLINE' + Date.now(),
       seminar_id: currentSeminar.id,
       student_name: studentName,
-      parent_phone: currentPhone,
+      parent_phone: formattedPhone, // 실제 전화번호 저장
       school: school,
       grade: grade,
       math_level: mathLevel,
@@ -287,7 +351,7 @@ function showDuplicateStep(last4) {
   }, 100);
 }
 
-// ===== 중복 확인 제출 처리 =====
+// ===== 중복 확인 제출 처리 (수정) =====
 async function handleDuplicateSubmit(event) {
   event.preventDefault();
 
@@ -306,9 +370,14 @@ async function handleDuplicateSubmit(event) {
   );
 
   if (!matched) {
-    // 일치하는 예약이 없으면 현장 등록으로
-    currentPhone = `010${middle4}${last4}`;
-    showOfflineRegistration(last4);
+    // 일치하는 예약이 없으면 팝업 후 현장 등록으로
+    showToast('개인정보 확인이 안되어 입력창으로 이동합니다.', 'info');
+
+    setTimeout(() => {
+      // 전체 전화번호 설정
+      currentPhone = `010${middle4}${last4}`;
+      showOfflineRegistration(last4);
+    }, 1500);
     return;
   }
 
@@ -359,12 +428,26 @@ async function processCheckIn() {
   }
 }
 
-// ===== 완료 화면 표시 =====
+// ===== 완료 화면 표시 (개선) =====
 function showCompleteStep() {
   // 참석자 이름 표시
   const nameElement = document.getElementById('attendeeName');
   if (nameElement && selectedReservation) {
     nameElement.textContent = `${selectedReservation.student_name} 학부모님`;
+  }
+
+  // 추가 정보 표시 (필요시)
+  const completeInfo = document.getElementById('completeInfo');
+  if (completeInfo && selectedReservation) {
+    const registrationType = isOfflineRegistration ? '현장 등록' : '사전 예약';
+    completeInfo.innerHTML = `
+      <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+        <p style="margin: 5px 0; color: #666;">등록 구분: <strong>${registrationType}</strong></p>
+        <p style="margin: 5px 0; color: #666;">체크인 시간: <strong>${formatTime(
+          new Date()
+        )}</strong></p>
+      </div>
+    `;
   }
 
   // 화면 전환
