@@ -834,6 +834,7 @@
 
       // 본인 확인
       // 본인 확인 (수정된 버전)
+      // consulting.html - 본인 확인 (최종 수정)
       async function verifyUser() {
         const phone = document.getElementById('phoneInput').value;
         const formattedPhone = formatPhone(phone);
@@ -846,33 +847,86 @@
         showLoading();
 
         try {
-          // 1. 진단검사 완료자 확인
-          const { data: testUser, error: testError } = await supabase
+          // ===== 1단계: 진단검사 신청 여부 확인 (3가지 방법) =====
+
+          // 방법 1: test_applications 테이블 확인
+          const { data: testApplications } = await supabase
+            .from('test_applications')
+            .select('*')
+            .eq('parent_phone', formattedPhone)
+            .order('created_at', { ascending: false });
+
+          // 방법 2: reservations 테이블에서 post_checkin_choice = 'test' 확인
+          const { data: testReservations } = await supabase
             .from('reservations')
             .select('*')
             .eq('parent_phone', formattedPhone)
             .eq('post_checkin_choice', 'test')
-            .order('id', { ascending: false })
-            .limit(1);
+            .order('id', { ascending: false });
 
-          if (!testUser || testUser.length === 0) {
+          // 방법 3: 체크인 후 진단검사 선택 확인 (status = '참석')
+          const { data: attendedReservations } = await supabase
+            .from('reservations')
+            .select('*')
+            .eq('parent_phone', formattedPhone)
+            .eq('status', '참석')
+            .order('attendance_checked_at', { ascending: false });
+
+          // 진단검사 신청 여부 종합 판단
+          let hasTestApplication = false;
+          let userData = null;
+
+          // test_applications에 기록이 있는 경우 (우선순위 1)
+          if (testApplications && testApplications.length > 0) {
+            hasTestApplication = true;
+            userData = testApplications[0];
+            console.log('✅ test_applications에서 진단검사 신청 확인');
+          }
+          // reservations에서 진단검사 선택 기록이 있는 경우 (우선순위 2)
+          else if (testReservations && testReservations.length > 0) {
+            hasTestApplication = true;
+            userData = testReservations[0];
+            console.log(
+              '✅ reservations(post_checkin_choice)에서 진단검사 신청 확인'
+            );
+          }
+          // 참석은 했지만 아직 선택 안 한 경우도 포함 (우선순위 3)
+          else if (attendedReservations && attendedReservations.length > 0) {
+            // 참석했지만 진단검사 미선택인 경우 안내
+            const attended = attendedReservations[0];
+            if (!attended.post_checkin_choice) {
+              hideLoading();
+              showToast(
+                '설명회 체크인은 완료하셨지만, 진단검사 신청이 필요합니다.',
+                'warning'
+              );
+
+              // 진단검사 신청 페이지로 안내
+              if (confirm('진단검사를 먼저 신청하시겠습니까?')) {
+                window.location.href = 'test-guide.html';
+              }
+              return;
+            }
+          }
+
+          // 진단검사 신청 기록이 전혀 없는 경우
+          if (!hasTestApplication) {
             hideLoading();
             showStep('testGuideRedirect');
             return;
           }
 
-          // 2. 기존 컨설팅 예약 확인 (중복 방지) - 수정됨
-          const { data: existingReservations, error: existError } =
-            await supabase
-              .from('consulting_reservations')
-              .select('*, consulting_slots(*)') // 슬롯 정보도 함께 조회
-              .eq('parent_phone', formattedPhone)
-              .in('status', ['confirmed', 'pending']); // 확정 및 대기 상태 모두 체크
+          // ===== 2단계: 기존 컨설팅 예약 확인 (중복 방지) =====
+          const { data: existingReservations } = await supabase
+            .from('consulting_reservations')
+            .select('*, consulting_slots(*)')
+            .eq('parent_phone', formattedPhone)
+            .in('status', ['confirmed', 'pending']);
 
           if (existingReservations && existingReservations.length > 0) {
-            // 가장 최근 예약 가져오기
             const latestReservation = existingReservations.sort(
-              (a, b) => new Date(b.created_at) - new Date(a.created_at)
+              (a, b) =>
+                new Date(b.created_at || 0) - new Date(a.created_at || 0)
             )[0];
 
             const slot = latestReservation.consulting_slots;
@@ -884,7 +938,6 @@
                 dateObj.getMonth() + 1
               }월 ${dateObj.getDate()}일`;
 
-              // 더 명확한 안내 메시지
               showToast(
                 `이미 ${dateStr} ${slot.time.slice(0, 5)}에 예약이 있습니다.`,
                 'warning'
@@ -898,11 +951,21 @@
                 showReservationResult(latestReservation);
               }, 1500);
             }
-            return; // 중요: 여기서 중단
+            return;
           }
 
-          // 예약이 없는 경우에만 진행
-          currentUser = testUser[0];
+          // ===== 3단계: 예약 가능 - 날짜 선택으로 진행 =====
+          currentUser = {
+            student_name: userData.student_name || '미입력',
+            parent_phone: userData.parent_phone,
+            school: userData.school || '미입력',
+            grade: userData.grade || '미입력',
+            math_level: userData.math_level || '미입력',
+            test_type: userData.test_type || null,
+            test_application_id: userData.id || null,
+          };
+
+          console.log('✅ 컨설팅 예약 가능 확인 완료:', currentUser);
           hideLoading();
           showDateSelection();
         } catch (error) {
@@ -912,7 +975,7 @@
         }
       }
 
-      // 예약 확인 (수정된 버전)
+      // 예약 확인 함수도 수정
       async function checkReservation() {
         const phone = document.getElementById('checkPhoneInput').value;
         const formattedPhone = formatPhone(phone);
@@ -925,13 +988,13 @@
         showLoading();
 
         try {
-          // 모든 예약 조회 (single() 제거)
+          // 모든 활성 예약 조회
           const { data: reservations, error: resError } = await supabase
             .from('consulting_reservations')
-            .select('*, consulting_slots(*)') // 슬롯 정보도 함께 조회
+            .select('*, consulting_slots(*)')
             .eq('parent_phone', formattedPhone)
-            .in('status', ['confirmed', 'pending']) // 활성 예약만
-            .order('created_at', { ascending: false }); // 최신순 정렬
+            .in('status', ['confirmed', 'pending'])
+            .order('created_at', { ascending: false });
 
           if (resError || !reservations || reservations.length === 0) {
             hideLoading();
@@ -939,56 +1002,19 @@
             return;
           }
 
-          // 여러 예약이 있는 경우 처리
-          if (reservations.length > 1) {
-            // 가장 최근 예약 표시하고 다른 예약도 있음을 알림
-            const latestReservation = reservations[0];
-            hideLoading();
+          // 가장 최근 예약 표시
+          const latestReservation = reservations[0];
+          hideLoading();
 
+          if (reservations.length > 1) {
             showToast(
               `${reservations.length}개의 예약이 있습니다. 가장 최근 예약을 표시합니다.`,
               'info'
             );
-
-            currentReservation = latestReservation;
-            showReservationResult(latestReservation);
-
-            // 추가 예약 정보 표시 (선택사항)
-            if (reservations.length > 1) {
-              const otherReservations = reservations.slice(1);
-              let additionalInfo =
-                '<div style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">';
-              additionalInfo += '<h4>다른 예약 정보:</h4>';
-
-              otherReservations.forEach((res) => {
-                if (res.consulting_slots) {
-                  const date = new Date(res.consulting_slots.date);
-                  additionalInfo += `<p>- ${
-                    date.getMonth() + 1
-                  }/${date.getDate()} ${res.consulting_slots.time.slice(
-                    0,
-                    5
-                  )}</p>`;
-                }
-              });
-
-              additionalInfo += '</div>';
-
-              // 예약 정보 하단에 추가
-              setTimeout(() => {
-                const infoContainer =
-                  document.getElementById('reservationInfo');
-                if (infoContainer) {
-                  infoContainer.insertAdjacentHTML('beforeend', additionalInfo);
-                }
-              }, 100);
-            }
-          } else {
-            // 예약이 하나만 있는 경우
-            hideLoading();
-            currentReservation = reservations[0];
-            showReservationResult(reservations[0]);
           }
+
+          currentReservation = latestReservation;
+          showReservationResult(latestReservation);
         } catch (error) {
           console.error('Error:', error);
           hideLoading();
