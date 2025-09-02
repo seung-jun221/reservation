@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>수학의 아침 X i.study - 진단검사 안내</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          sans-serif;
+        background-color: #f5f5f5;
+        color: #333;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        font-size: 24px;
+        text-align: center;
+        margin-bottom: 10px;
+        color: #1a73e8;
+      }
+
+      h2 {
+        font-size: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+        color: #666;
+      }
+
+      h3 {
+        font-size: 18px;
+        margin-bottom: 15px;
+        color: #333;
+      }
+
+      .info-box {
+        background: #e3f2fd;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .warning-box {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .error-box {
+        background: #ffebee;
+        color: #c62828;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+
+      .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .btn {
+        padding: 15px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+        line-height: 1.4;
+        width: 100%;
+      }
+
+      .btn-primary {
+        background: #1a73e8;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #1557b0;
+      }
+
+      .btn-primary:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      .btn-secondary {
+        background: white;
+        color: #1a73e8;
+        border: 2px solid #1a73e8;
+      }
+
+      .btn-secondary:hover {
+        background: #e3f2fd;
+      }
+
+      .btn-success {
+        background: #4caf50;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #45a049;
+      }
+
+      .btn-back {
+        background: #666;
+        color: white;
+        margin-bottom: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #555;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+      }
+
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #1a73e8;
+      }
+
+      /* 시험지 선택 카드 */
+      .test-selection-grid {
+        display: grid;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .test-card {
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.3s;
+        position: relative;
+      }
+
+      .test-card:hover {
+        border-color: #1a73e8;
+        box-shadow: 0 4px 12px rgba(26, 115, 232, 0.15);
+      }
+
+      .test-card.selected {
+        border-color: #1a73e8;
+        background: #f0f7ff;
+      }
+
+      .test-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+
+      .badge-recommended {
+        background: #4caf50;
+        color: white;
+      }
+
+      .badge-advanced {
+        background: #ff6b35;
+        color: white;
+      }
+
+      .badge-highest {
+        background: #9c27b0;
+        color: white;
+      }
+
+      .badge-high {
+        background: #2196f3;
+        color: white;
+      }
+
+      .test-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #333;
+      }
+
+      .test-features {
+        background: #f5f5f5;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+      }
+
+      .feature-item {
+        display: flex;
+        align-items: center;
+        margin: 8px 0;
+        font-size: 14px;
+      }
+
+      .feature-icon {
+        margin-right: 8px;
+        font-size: 16px;
+      }
+
+      .check {
+        color: #4caf50;
+      }
+      .warn {
+        color: #ff9800;
+      }
+      .info {
+        color: #2196f3;
+      }
+
+      /* HME 학년 선택 */
+      .grade-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin: 15px 0;
+      }
+
+      .grade-btn {
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 500;
+        text-align: center;
+      }
+
+      .grade-btn:hover {
+        background: #e3f2fd;
+        border-color: #1a73e8;
+      }
+
+      .grade-btn.selected {
+        background: #1a73e8;
+        color: white;
+        border-color: #1a73e8;
+      }
+
+      /* 체크리스트 */
+      .checklist {
+        margin: 20px 0;
+      }
+
+      .checklist-item {
+        display: flex;
+        align-items: flex-start;
+        margin: 12px 0;
+        padding: 10px;
+        background: #f5f5f5;
+        border-radius: 6px;
+      }
+
+      .checklist-item input[type='checkbox'] {
+        width: auto;
+        margin-right: 12px;
+        margin-top: 2px;
+      }
+
+      .checklist-item label {
+        margin: 0;
+        font-weight: normal;
+        flex: 1;
+      }
+
+      /* 스텝 인디케이터 */
+      .step-indicator {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      .step {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e0e0e0;
+        color: #999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 16px;
+      }
+
+      .step.active {
+        background: #1a73e8;
+        color: white;
+      }
+
+      .step.completed {
+        background: #4caf50;
+        color: white;
+      }
+
+      .step-line {
+        width: 60px;
+        height: 2px;
+        background: #e0e0e0;
+        margin: 0 10px;
+      }
+
+      .step-line.completed {
+        background: #4caf50;
+      }
+
+      /* 정보 표시 */
+      .info-display {
+        background: #f5f5f5;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+
+      .info-item {
+        display: flex;
+        margin: 10px 0;
+      }
+
+      .info-label {
+        font-weight: 600;
+        color: #666;
+        min-width: 100px;
+        margin-right: 15px;
+      }
+
+      .info-value {
+        color: #333;
+      }
+
+      /* 다운로드 섹션 */
+      .download-section {
+        background: #f0f7ff;
+        border: 2px solid #1a73e8;
+        border-radius: 12px;
+        padding: 30px;
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      .download-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 20px;
+        flex-wrap: wrap;
+      }
+
+      .download-btn {
+        display: inline-block;
+        padding: 15px 30px;
+        background: #1a73e8;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s;
+      }
+
+      .download-btn:hover {
+        background: #1557b0;
+        transform: translateY(-2px);
+      }
+
+      .download-btn.solution {
+        background: #4caf50;
+      }
+
+      .download-btn.solution:hover {
+        background: #45a049;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+      }
+
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #1a73e8;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .divider {
+        text-align: center;
+        margin: 30px 0;
+        position: relative;
+      }
+
+      .divider::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: #ddd;
+      }
+
+      .divider span {
+        background: white;
+        padding: 0 20px;
+        position: relative;
+        color: #999;
+        font-size: 14px;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 10px;
+        }
+
+        .card {
+          padding: 20px;
+        }
+
+        .grade-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .download-buttons {
+          flex-direction: column;
+        }
+
+        .download-btn {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- 헤더 -->
+      <div class="card">
+        <h1>수학의 아침 X i.study [수리탐구]</h1>
+        <h2>진단검사 응시 안내</h2>
+        <div class="info-box">
+          <p>
+            본 진단검사는 학생의 현재 수학 실력을 정확히 진단하여 맞춤형 학습
+            설계를 위한 자료로 활용됩니다.
+          </p>
+          <br />
+          <p>
+            진단검사 완료 후 개별 컨설팅을 통해 상세한 분석과 학습 로드맵을
+            제공해드립니다.
+          </p>
+        </div>
+      </div>
+      <!-- STEP 1: 본인 확인 -->
+      <div id="step1" class="card">
+        <div class="step-indicator">
+          <div class="step active">1</div>
+          <div class="step-line"></div>
+          <div class="step">2</div>
+          <div class="step-line"></div>
+          <div class="step">3</div>
+        </div>
+
+        <h3>본인 확인</h3>
+        <p style="margin-bottom: 20px; color: #666">
+          설명회 참석 후 진단검사를 신청하신 분만 이용 가능합니다.
+        </p>
+
+        <form id="verifyForm" onsubmit="event.preventDefault(); verifyUser();">
+          <div class="form-group">
+            <label>학부모 연락처</label>
+            <input
+              type="tel"
+              id="phoneInput"
+              placeholder="010-0000-0000"
+              required
+            />
+          </div>
+          <button type="submit" class="btn btn-primary">확인</button>
+        </form>
+
+        <div class="divider">
+          <span>또는</span>
+        </div>
+
+        <div style="text-align: center">
+          <p style="color: #666; margin-bottom: 15px">
+            진단검사를 처음 신청하시나요?
+          </p>
+          <button class="btn btn-secondary" onclick="showNewForm()">
+            신규 신청하기
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 1-2: 신규 신청 -->
+      <div id="newForm" class="card hidden">
+        <button class="btn btn-back" onclick="backToVerify()">← 뒤로</button>
+        <h3>진단검사 신청</h3>
+        <p style="margin-bottom: 20px; color: #666">
+          정확한 진단을 위해 정보를 입력해주세요.
+        </p>
+
+        <form
+          id="newApplicationForm"
+          onsubmit="event.preventDefault(); submitNewApplication();"
+        >
+          <div class="form-group">
+            <label>학생명</label>
+            <input type="text" id="newName" required />
+          </div>
+
+          <div class="form-group">
+            <label>학부모 연락처</label>
+            <input
+              type="tel"
+              id="newPhone"
+              placeholder="010-0000-0000"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>학교</label>
+            <input type="text" id="newSchool" required />
+          </div>
+
+          <div class="form-group">
+            <label>학년</label>
+            <select id="newGrade" required>
+              <option value="">선택하세요</option>
+              <option value="초1">초등학교 1학년</option>
+              <option value="초2">초등학교 2학년</option>
+              <option value="초3">초등학교 3학년</option>
+              <option value="초4">초등학교 4학년</option>
+              <option value="초5">초등학교 5학년</option>
+              <option value="초6">초등학교 6학년</option>
+              <option value="중1">중학교 1학년</option>
+              <option value="중2">중학교 2학년</option>
+              <option value="중3">중학교 3학년</option>
+              <option value="고1">고등학교 1학년</option>
+              <option value="고2">고등학교 2학년</option>
+              <option value="고3">고등학교 3학년</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>수학 선행정도</label>
+            <input
+              type="text"
+              id="newMathLevel"
+              placeholder="예: 중2-1 심화 완료"
+              required
+            />
+          </div>
+
+          <button type="submit" class="btn btn-primary">다음</button>
+        </form>
+      </div>
+
+      <!-- STEP 2: 정보 확인 -->
+      <div id="step2Info" class="card hidden">
+        <div class="step-indicator">
+          <div class="step completed">✓</div>
+          <div class="step-line completed"></div>
+          <div class="step active">2</div>
+          <div class="step-line"></div>
+          <div class="step">3</div>
+        </div>
+
+        <h3>신청 정보 확인</h3>
+
+        <div class="info-display">
+          <div class="info-item">
+            <span class="info-label">학생명:</span>
+            <span class="info-value" id="confirmName">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">학교:</span>
+            <span class="info-value" id="confirmSchool">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">학년:</span>
+            <span class="info-value" id="confirmGrade">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">수학 선행:</span>
+            <span class="info-value" id="confirmMathLevel">-</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="showTestSelection()">
+          시험지 선택하기
+        </button>
+      </div>
+
+      <!-- STEP 2: 시험지 선택 -->
+      <div id="step2" class="card hidden">
+        <div class="step-indicator">
+          <div class="step completed">✓</div>
+          <div class="step-line completed"></div>
+          <div class="step active">2</div>
+          <div class="step-line"></div>
+          <div class="step">3</div>
+        </div>
+
+        <h3>진단검사 선택</h3>
+        <p style="margin-bottom: 20px; color: #666">
+          학생의 현재 수준에 맞는 시험지를 선택해주세요.
+        </p>
+
+        <div class="warning-box">
+          <h4 style="margin-bottom: 10px">
+            ⚠️ 자체 진단검사(MONO/TRI) 선택 시 주의사항
+          </h4>
+          <ul style="margin-left: 20px; font-size: 14px">
+            <li>정답 및 풀이집이 제공되지 않습니다</li>
+            <li>작성한 시험지를 컨설팅 시 반드시 지참하세요</li>
+            <li>현장에서 채점 후 즉시 분석 진행</li>
+          </ul>
+        </div>
+
+        <div class="test-selection-grid">
+          <!-- HME 학력평가 -->
+          <div class="test-card" onclick="selectTest('HME')">
+            <span class="test-badge badge-recommended">추천</span>
+            <div class="test-title">HME 학력평가</div>
+            <div class="test-features">
+              <div class="feature-item">
+                <span class="feature-icon check">✅</span> 답안지 제공
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon check">✅</span> 풀이집 제공
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon info">📚</span> 대상: 초등 ~ 중등 기초
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon info">📝</span> 9종 시험지 (초1~중3)
+              </div>
+            </div>
+            <button class="btn btn-primary">HME 선택하기 →</button>
+          </div>
+
+          <!-- MONO 진단검사 -->
+          <div class="test-card" onclick="selectTest('MONO')">
+            <span class="test-badge badge-advanced">심화</span>
+            <div class="test-title">MONO 진단검사</div>
+            <div class="test-features">
+              <div class="feature-item">
+                <span class="feature-icon warn">⚠️</span> 답안지 미제공
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon warn">⚠️</span> 현장 채점 필수
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon info">📚</span> 대상: 중1-1 심화 완료
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon info">⏱️</span> 25문항 / 90분
+              </div>
+            </div>
+            <button class="btn btn-primary">MONO 선택하기 →</button>
+          </div>
+
+          <!-- TRI 진단검사 -->
+          <div class="test-card" onclick="selectTest('TRI')">
+            <span class="test-badge badge-highest">최상위</span>
+            <div class="test-title">TRI 진단검사</div>
+            <div class="test-features">
+              <div class="feature-item">
+                <span class="feature-icon warn">⚠️</span> 답안지 미제공
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon warn">⚠️</span> 공통수학1 포함
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon info">📚</span> 대상: 중3-1 심화 완료
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon info">⏱️</span> 25문항 / 90분
+              </div>
+            </div>
+            <button class="btn btn-primary">TRI 선택하기 →</button>
+          </div>
+
+          <!-- 고1 모의고사 -->
+          <div class="test-card" onclick="selectTest('MOCK')">
+            <span class="test-badge badge-high">고등</span>
+            <div class="test-title">고1 6월 모의고사</div>
+            <div class="test-features">
+              <div class="feature-item">
+                <span class="feature-icon check">✅</span> 답안지 제공
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon check">✅</span> 해설지 제공
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon info">📚</span> 대상: 고1 과정 이상
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon info">📊</span> 등급 산정 가능
+              </div>
+            </div>
+            <button class="btn btn-primary">모의고사 선택하기 →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- HME 학년 선택 -->
+      <div id="hmeGradeSelect" class="card hidden">
+        <button class="btn btn-back" onclick="backToTestSelect()">
+          ← 뒤로
+        </button>
+        <h3>HME 학력평가 - 학년 선택</h3>
+        <p style="margin-bottom: 20px; color: #666">
+          💡 현재 학년보다 1~2학년 위를 선택하는 것을 권장합니다.
+        </p>
+
+        <div class="info-box">
+          <strong>선택 기준</strong>
+          <ul style="margin-left: 20px; margin-top: 10px">
+            <li>현재 학년보다 높은 단계 선택 권장</li>
+            <li>선행 진도에 맞춰 선택</li>
+            <li>확실하지 않으면 낮은 단계부터 시작</li>
+          </ul>
+        </div>
+
+        <h4 style="margin-bottom: 10px">초등부</h4>
+        <div class="grade-grid">
+          <button class="grade-btn" onclick="selectHMEGrade('초1')">초1</button>
+          <button class="grade-btn" onclick="selectHMEGrade('초2')">초2</button>
+          <button class="grade-btn" onclick="selectHMEGrade('초3')">초3</button>
+          <button class="grade-btn" onclick="selectHMEGrade('초4')">초4</button>
+          <button class="grade-btn" onclick="selectHMEGrade('초5')">초5</button>
+          <button class="grade-btn" onclick="selectHMEGrade('초6')">초6</button>
+        </div>
+
+        <h4 style="margin: 20px 0 10px">중등부</h4>
+        <div class="grade-grid">
+          <button class="grade-btn" onclick="selectHMEGrade('중1')">중1</button>
+          <button class="grade-btn" onclick="selectHMEGrade('중2')">중2</button>
+          <button class="grade-btn" onclick="selectHMEGrade('중3')">중3</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: 다운로드 -->
+      <div id="step3" class="card hidden">
+        <div class="step-indicator">
+          <div class="step completed">✓</div>
+          <div class="step-line completed"></div>
+          <div class="step completed">✓</div>
+          <div class="step-line completed"></div>
+          <div class="step active">3</div>
+        </div>
+
+        <h3>시험지 다운로드</h3>
+
+        <div class="info-display">
+          <div class="info-item">
+            <span class="info-label">선택한 시험:</span>
+            <span class="info-value" id="selectedTestName">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">학생명:</span>
+            <span class="info-value" id="downloadStudentName">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">학년:</span>
+            <span class="info-value" id="downloadGrade">-</span>
+          </div>
+        </div>
+
+        <!-- MONO/TRI 체크리스트 -->
+        <div id="proprietaryChecklist" class="hidden">
+          <div class="warning-box">
+            <h4 style="margin-bottom: 15px">📌 진단검사 응시 안내</h4>
+            <p style="font-size: 14px; line-height: 1.6; margin-bottom: 10px">
+              본 진단검사는 과정 성취도 확인이 아닌,
+              <strong>고등과정 진행 시 이해도를 예측</strong>하는 검사입니다.
+              생소한 문제라도 끝까지 고민해보세요.
+            </p>
+          </div>
+
+          <h4 style="margin: 20px 0 15px">응시 전 확인사항</h4>
+          <div class="checklist">
+            <div class="checklist-item">
+              <input type="checkbox" id="check1" onchange="checkAllBoxes()" />
+              <label for="check1">답안지가 제공되지 않음을 이해했습니다</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" id="check2" onchange="checkAllBoxes()" />
+              <label for="check2"
+                >작성한 시험지를 컨설팅 시 지참해야 함을 이해했습니다</label
+              >
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" id="check3" onchange="checkAllBoxes()" />
+              <label for="check3">90분 시간제한을 지킬 것을 약속합니다</label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" id="check4" onchange="checkAllBoxes()" />
+              <label for="check4">외부 도움 없이 혼자 풀 것을 약속합니다</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="download-section">
+          <h3 style="margin-bottom: 10px">📥 시험지 다운로드</h3>
+          <p style="color: #666; margin-bottom: 20px">
+            아래 버튼을 클릭하여 시험지를 다운로드하세요
+          </p>
+          <div class="download-buttons">
+            <a
+              id="downloadLink"
+              class="download-btn"
+              href="#"
+              download
+              onclick="recordDownload()"
+            >
+              📄 시험지 다운로드
+            </a>
+            <a
+              id="solutionLink"
+              class="download-btn solution hidden"
+              href="#"
+              download
+            >
+              📝 풀이집 다운로드
+            </a>
+          </div>
+        </div>
+
+        <div class="info-box" style="margin-top: 30px">
+          <h4 style="margin-bottom: 10px">✅ 다음 단계 안내</h4>
+          <ol style="margin-left: 20px; line-height: 1.8">
+            <li>진단검사를 정해진 시간 내에 응시합니다</li>
+            <li>컨설팅 예약 링크가 문자로 발송됩니다</li>
+            <li>컨설팅 시 작성한 시험지를 지참합니다</li>
+            <li>현장에서 채점 및 분석을 진행합니다</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- 로딩 -->
+      <div id="loading" class="card hidden">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>처리 중입니다...</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Supabase 설정 (실제 값으로 변경 필요)
+      const SUPABASE_URL = 'https://xooglumwuzctbcjtcvnd.supabase.co';
+      const SUPABASE_ANON_KEY =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb2dsdW13dXpjdGJjanRjdm5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1OTk5OTgsImV4cCI6MjA3MTE3NTk5OH0.Uza-Z3CzwQgkYKJmKdwTNCAYgaxeKFs__2udUSAGpJg';
+
+      // 전역 변수
+      let currentUser = null;
+      let selectedTest = null;
+      let selectedHMEGrade = null;
+
+      // 전화번호 포맷
+      function formatPhone(phone) {
+        const cleaned = phone.replace(/\D/g, '');
+        if (cleaned.length === 11) {
+          return cleaned.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+        } else if (cleaned.length === 10) {
+          return cleaned.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+        }
+        return phone;
+      }
+
+      // STEP 1: 본인 확인
+      async function verifyUser() {
+        const phone = document.getElementById('phoneInput').value;
+        const formattedPhone = formatPhone(phone);
+
+        if (!formattedPhone || formattedPhone.length < 12) {
+          alert('올바른 전화번호를 입력해주세요');
+          return;
+        }
+
+        showLoading();
+
+        try {
+          // TODO: 실제 Supabase 조회로 변경
+          // const { data, error } = await supabase
+          //     .from('reservations')
+          //     .select('*')
+          //     .eq('parent_phone', formattedPhone)
+          //     .eq('post_checkin_choice', 'test')
+          //     .single();
+
+          // 임시 테스트 데이터
+          const testData = localStorage.getItem(`user_${formattedPhone}`);
+
+          if (testData) {
+            currentUser = JSON.parse(testData);
+            hideLoading();
+            showInfoConfirm();
+          } else {
+            hideLoading();
+            alert('등록된 정보가 없습니다.\n신규 신청을 진행해주세요.');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          hideLoading();
+          alert('오류가 발생했습니다. 다시 시도해주세요.');
+        }
+      }
+
+      // 신규 신청 폼 표시
+      function showNewForm() {
+        document.getElementById('step1').classList.add('hidden');
+        document.getElementById('newForm').classList.remove('hidden');
+      }
+
+      // 신규 신청 제출
+      async function submitNewApplication() {
+        const data = {
+          student_name: document.getElementById('newName').value.trim(),
+          parent_phone: formatPhone(document.getElementById('newPhone').value),
+          school: document.getElementById('newSchool').value.trim(),
+          grade: document.getElementById('newGrade').value,
+          math_level: document.getElementById('newMathLevel').value.trim(),
+        };
+
+        if (
+          !data.student_name ||
+          !data.parent_phone ||
+          !data.school ||
+          !data.grade ||
+          !data.math_level
+        ) {
+          alert('모든 필수 항목을 입력해주세요');
+          return;
+        }
+
+        showLoading();
+
+        try {
+          // TODO: 실제 Supabase 저장으로 변경
+          // const { data: savedData, error } = await supabase
+          //     .from('test_applications')
+          //     .insert([data])
+          //     .single();
+
+          // 임시로 localStorage에 저장
+          localStorage.setItem(
+            `user_${data.parent_phone}`,
+            JSON.stringify(data)
+          );
+          currentUser = data;
+
+          hideLoading();
+          showInfoConfirm();
+        } catch (error) {
+          console.error('Error:', error);
+          hideLoading();
+          alert('신청 처리 중 오류가 발생했습니다.');
+        }
+      }
+
+      // 정보 확인 화면 표시
+      function showInfoConfirm() {
+        document.getElementById('step1').classList.add('hidden');
+        document.getElementById('newForm').classList.add('hidden');
+        document.getElementById('step2Info').classList.remove('hidden');
+
+        // 정보 표시
+        document.getElementById('confirmName').textContent =
+          currentUser.student_name;
+        document.getElementById('confirmSchool').textContent =
+          currentUser.school;
+        document.getElementById('confirmGrade').textContent = currentUser.grade;
+        document.getElementById('confirmMathLevel').textContent =
+          currentUser.math_level;
+      }
+
+      // 시험지 선택 화면 표시
+      function showTestSelection() {
+        document.getElementById('step2Info').classList.add('hidden');
+        document.getElementById('step2').classList.remove('hidden');
+      }
+
+      // 시험지 선택
+      function selectTest(type) {
+        selectedTest = type;
+
+        if (type === 'HME') {
+          document.getElementById('step2').classList.add('hidden');
+          document.getElementById('hmeGradeSelect').classList.remove('hidden');
+        } else {
+          showDownloadPage();
+        }
+      }
+
+      // HME 학년 선택
+      function selectHMEGrade(grade) {
+        selectedHMEGrade = grade;
+
+        // 선택 표시
+        document.querySelectorAll('.grade-btn').forEach((btn) => {
+          btn.classList.remove('selected');
+          if (btn.textContent === grade) {
+            btn.classList.add('selected');
+          }
+        });
+
+        // 잠시 후 다운로드 페이지로 이동
+        setTimeout(() => {
+          showDownloadPage();
+        }, 300);
+      }
+
+      // 다운로드 페이지 표시
+      function showDownloadPage() {
+        document.getElementById('step2').classList.add('hidden');
+        document.getElementById('hmeGradeSelect').classList.add('hidden');
+        document.getElementById('step3').classList.remove('hidden');
+
+        // 선택 정보 표시
+        let testName = '';
+        if (selectedTest === 'HME') {
+          testName = `HME 학력평가 - ${selectedHMEGrade}`;
+        } else if (selectedTest === 'MONO') {
+          testName = 'MONO 진단검사';
+        } else if (selectedTest === 'TRI') {
+          testName = 'TRI 진단검사';
+        } else if (selectedTest === 'MOCK') {
+          testName = '고1 6월 모의고사';
+        }
+
+        document.getElementById('selectedTestName').textContent = testName;
+        document.getElementById('downloadStudentName').textContent =
+          currentUser?.student_name || '-';
+        document.getElementById('downloadGrade').textContent =
+          currentUser?.grade || '-';
+
+        // MONO/TRI 체크리스트 표시
+        if (selectedTest === 'MONO' || selectedTest === 'TRI') {
+          document
+            .getElementById('proprietaryChecklist')
+            .classList.remove('hidden');
+          document.getElementById('downloadLink').style.display = 'none';
+        } else {
+          document
+            .getElementById('proprietaryChecklist')
+            .classList.add('hidden');
+          document.getElementById('downloadLink').style.display =
+            'inline-block';
+        }
+
+        // 다운로드 링크 설정 (실제 PDF 경로로 변경 필요)
+        const downloadLink = document.getElementById('downloadLink');
+        const solutionLink = document.getElementById('solutionLink');
+
+        if (selectedTest === 'HME') {
+          downloadLink.href = `/pdfs/HME_${selectedHMEGrade}.pdf`;
+          solutionLink.href = `/pdfs/HME_${selectedHMEGrade}_solution.pdf`;
+          solutionLink.classList.remove('hidden');
+        } else if (selectedTest === 'MONO') {
+          downloadLink.href = '/pdfs/MONO.pdf';
+          solutionLink.classList.add('hidden');
+        } else if (selectedTest === 'TRI') {
+          downloadLink.href = '/pdfs/TRI.pdf';
+          solutionLink.classList.add('hidden');
+        } else if (selectedTest === 'MOCK') {
+          downloadLink.href = '/pdfs/고1_6월_모의고사.pdf';
+          solutionLink.href = '/pdfs/고1_6월_모의고사_해설.pdf';
+          solutionLink.classList.remove('hidden');
+        }
+      }
+
+      // 체크박스 확인
+      function checkAllBoxes() {
+        const checkboxes = document.querySelectorAll(
+          '#proprietaryChecklist input[type="checkbox"]'
+        );
+        const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
+
+        const downloadLink = document.getElementById('downloadLink');
+        if (allChecked) {
+          downloadLink.style.display = 'inline-block';
+        } else {
+          downloadLink.style.display = 'none';
+        }
+      }
+
+      // 다운로드 기록
+      async function recordDownload() {
+        try {
+          // TODO: 실제 Supabase 기록으로 변경
+          const record = {
+            ...currentUser,
+            test_type: selectedTest,
+            hme_grade: selectedHMEGrade,
+            downloaded_at: new Date().toISOString(),
+          };
+
+          console.log('Download recorded:', record);
+
+          // 다운로드 알림
+          setTimeout(() => {
+            alert(
+              '시험지 다운로드가 완료되었습니다.\n\n컨설팅 예약 링크는 추후 문자로 발송됩니다.'
+            );
+          }, 1000);
+        } catch (error) {
+          console.error('Error recording download:', error);
+        }
+      }
+
+      // 네비게이션 함수
+      function backToVerify() {
+        document.getElementById('newForm').classList.add('hidden');
+        document.getElementById('step1').classList.remove('hidden');
+      }
+
+      function backToTestSelect() {
+        document.getElementById('hmeGradeSelect').classList.add('hidden');
+        document.getElementById('step2').classList.remove('hidden');
+      }
+
+      // 유틸리티 함수
+      function showLoading() {
+        document.getElementById('loading').classList.remove('hidden');
+      }
+
+      function hideLoading() {
+        document.getElementById('loading').classList.add('hidden');
+      }
+    </script>
+  </body>
+</html>
