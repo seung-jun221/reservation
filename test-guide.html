@@ -911,11 +911,20 @@
       </div>
     </div>
 
+    <!-- Supabase 라이브러리 추가 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script>
       // Supabase 설정 (실제 값으로 변경 필요)
       const SUPABASE_URL = 'https://xooglumwuzctbcjtcvnd.supabase.co';
       const SUPABASE_ANON_KEY =
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb2dsdW13dXpjdGJjanRjdm5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1OTk5OTgsImV4cCI6MjA3MTE3NTk5OH0.Uza-Z3CzwQgkYKJmKdwTNCAYgaxeKFs__2udUSAGpJg';
+
+      // Supabase 클라이언트 초기화 (중요!)
+      const supabase = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+      );
 
       // 전역 변수
       let currentUser = null;
@@ -933,42 +942,85 @@
         return phone;
       }
 
-      // STEP 1: 본인 확인
       async function verifyUser() {
         const phone = document.getElementById('phoneInput').value;
-        const formattedPhone = formatPhone(phone);
+        const cleanPhone = phone.replace(/\D/g, '');
 
-        if (!formattedPhone || formattedPhone.length < 12) {
+        // 하이픈 포함 형식으로 변환
+        let formattedPhone;
+        if (cleanPhone.length === 11) {
+          formattedPhone = `${cleanPhone.slice(0, 3)}-${cleanPhone.slice(
+            3,
+            7
+          )}-${cleanPhone.slice(7)}`;
+        } else if (cleanPhone.length === 10) {
+          formattedPhone = `010-${cleanPhone.slice(0, 4)}-${cleanPhone.slice(
+            4
+          )}`;
+        } else {
           alert('올바른 전화번호를 입력해주세요');
           return;
         }
 
+        console.log('조회할 전화번호:', formattedPhone);
         showLoading();
 
         try {
-          // TODO: 실제 Supabase 조회로 변경
-          // const { data, error } = await supabase
-          //     .from('reservations')
-          //     .select('*')
-          //     .eq('parent_phone', formattedPhone)
-          //     .eq('post_checkin_choice', 'test')
-          //     .single();
+          // 1. 진단검사 신청자 확인 (이 경우만 통과)
+          const { data: testApplicant, error: testError } = await supabase
+            .from('reservations')
+            .select('*')
+            .eq('parent_phone', formattedPhone)
+            .eq('status', '참석')
+            .eq('post_checkin_choice', 'test')
+            .order('id', { ascending: false })
+            .limit(1);
 
-          // 임시 테스트 데이터
-          const testData = localStorage.getItem(`user_${formattedPhone}`);
+          console.log('진단검사 신청자 조회 결과:', testApplicant);
 
-          if (testData) {
-            currentUser = JSON.parse(testData);
+          if (testApplicant && testApplicant.length > 0) {
+            // 진단검사 신청자만 정보 확인 화면으로
+            currentUser = {
+              student_name: testApplicant[0].student_name,
+              parent_phone: testApplicant[0].parent_phone,
+              school: testApplicant[0].school,
+              grade: testApplicant[0].grade,
+              math_level: testApplicant[0].math_level,
+            };
             hideLoading();
             showInfoConfirm();
-          } else {
-            hideLoading();
-            alert('등록된 정보가 없습니다.\n신규 신청을 진행해주세요.');
+            return;
           }
+
+          // 2. 그 외 모든 경우 (체크인만, 예약만, 미등록 등)
+          // 간단히 신규 신청 안내만
+          hideLoading();
+          alert(
+            '진단검사 신청 내역이 없습니다.\n\n화면 하단의 [신규 신청하기]를 통해 진행해주세요.'
+          );
         } catch (error) {
           console.error('Error:', error);
           hideLoading();
           alert('오류가 발생했습니다. 다시 시도해주세요.');
+        }
+      }
+
+      // 진단검사 선택으로 업데이트하는 함수 추가
+      async function updateToTestChoice(reservationId) {
+        try {
+          const { error } = await supabase
+            .from('reservations')
+            .update({
+              post_checkin_choice: 'test',
+              post_checkin_at: new Date().toISOString(),
+            })
+            .eq('id', reservationId);
+
+          if (!error) {
+            console.log('진단검사 선택 업데이트 완료');
+          }
+        } catch (error) {
+          console.error('업데이트 실패:', error);
         }
       }
 
@@ -980,9 +1032,25 @@
 
       // 신규 신청 제출
       async function submitNewApplication() {
+        const phone = document.getElementById('newPhone').value;
+        const cleanPhone = phone.replace(/\D/g, '');
+
+        // 하이픈 포함 형식으로 저장
+        let formattedPhone;
+        if (cleanPhone.length === 11) {
+          formattedPhone = `${cleanPhone.slice(0, 3)}-${cleanPhone.slice(
+            3,
+            7
+          )}-${cleanPhone.slice(7)}`;
+        } else {
+          formattedPhone = `010-${cleanPhone.slice(0, 4)}-${cleanPhone.slice(
+            4
+          )}`;
+        }
+
         const data = {
           student_name: document.getElementById('newName').value.trim(),
-          parent_phone: formatPhone(document.getElementById('newPhone').value),
+          parent_phone: formattedPhone, // 하이픈 포함 형식으로 저장
           school: document.getElementById('newSchool').value.trim(),
           grade: document.getElementById('newGrade').value,
           math_level: document.getElementById('newMathLevel').value.trim(),

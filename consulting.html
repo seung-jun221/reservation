@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>수학의 아침 X i.study - 개별 컨설팅 예약</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          sans-serif;
+        background-color: #f5f5f5;
+        color: #333;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        font-size: 28px;
+        text-align: center;
+        margin-bottom: 10px;
+        color: #1a73e8;
+      }
+
+      h2 {
+        font-size: 20px;
+        text-align: center;
+        margin-bottom: 30px;
+        color: #666;
+      }
+
+      h3 {
+        font-size: 18px;
+        margin-bottom: 15px;
+        color: #333;
+      }
+
+      .info-box {
+        background: #e3f2fd;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .info-box strong {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 16px;
+      }
+
+      .info-box ul {
+        margin-left: 20px;
+        margin-top: 10px;
+      }
+
+      .info-box li {
+        margin-bottom: 5px;
+      }
+
+      .warning-box {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .error-box {
+        background: #ffebee;
+        border: 1px solid #f44336;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        font-size: 14px;
+        color: #c62828;
+      }
+
+      .btn {
+        padding: 15px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+        width: 100%;
+      }
+
+      .btn-primary {
+        background: #1a73e8;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #1557b0;
+      }
+
+      .btn-primary:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      .btn-secondary {
+        background: white;
+        color: #1a73e8;
+        border: 2px solid #1a73e8;
+        margin-bottom: 10px;
+      }
+
+      .btn-secondary:hover {
+        background: #e3f2fd;
+      }
+
+      .btn-danger {
+        background: #f44336;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #d32f2f;
+      }
+
+      .btn-link {
+        background: #4caf50;
+        color: white;
+      }
+
+      .btn-link:hover {
+        background: #388e3c;
+      }
+
+      /* 날짜 선택 */
+      .date-selector {
+        margin-bottom: 30px;
+      }
+
+      .week-container {
+        margin-bottom: 20px;
+      }
+
+      .date-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .date-card {
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+      }
+
+      .date-card:hover {
+        border-color: #1a73e8;
+        background: #f0f7ff;
+      }
+
+      .date-card.selected {
+        border-color: #1a73e8;
+        background: #e3f2fd;
+      }
+
+      .date-card.full {
+        background: #f5f5f5;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .date-card.past {
+        background: #ffebee;
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
+      .date-header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .date-month {
+        font-size: 14px;
+        color: #666;
+      }
+
+      .date-day {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+      }
+
+      .date-weekday {
+        font-size: 14px;
+        color: #666;
+      }
+
+      .date-info {
+        margin-top: 10px;
+      }
+
+      .remaining-seats {
+        font-size: 12px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        display: inline-block;
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .remaining-seats.full {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .remaining-seats.few {
+        background: #fff3cd;
+        color: #856404;
+      }
+
+      /* 시간 선택 */
+      .time-selector {
+        margin-bottom: 30px;
+      }
+
+      .time-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .time-slot {
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+      }
+
+      .time-slot:hover {
+        border-color: #1a73e8;
+        background: #f0f7ff;
+      }
+
+      .time-slot.selected {
+        border-color: #1a73e8;
+        background: #1a73e8;
+        color: white;
+      }
+
+      .time-slot.unavailable {
+        background: #f5f5f5;
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
+      .time-text {
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .time-status {
+        font-size: 12px;
+        margin-top: 5px;
+      }
+
+      /* 정보 입력 */
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #555;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+      }
+
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #1a73e8;
+      }
+
+      input:disabled {
+        background: #f5f5f5;
+      }
+
+      /* 예약 정보 */
+      .reservation-info {
+        background: #f5f5f5;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+
+      .info-item {
+        display: flex;
+        margin: 10px 0;
+      }
+
+      .info-label {
+        font-weight: 600;
+        color: #666;
+        min-width: 100px;
+        margin-right: 15px;
+      }
+
+      .info-value {
+        color: #333;
+      }
+
+      /* 로딩 */
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+      }
+
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #1a73e8;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      /* 완료 화면 */
+      .success-icon {
+        font-size: 48px;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      /* 토스트 메시지 */
+      .toast {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 15px 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+
+      .toast.show {
+        opacity: 1;
+      }
+
+      .toast.error {
+        background: #f44336;
+      }
+
+      .toast.success {
+        background: #4caf50;
+      }
+
+      .toast.warning {
+        background: #ff9800;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 10px;
+        }
+
+        .card {
+          padding: 20px;
+        }
+
+        .date-grid,
+        .time-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- 메인 화면: 헤더 + 본인 확인 -->
+      <div id="mainScreen" class="card">
+        <h1>수학의 아침 X i.study [수리탐구]</h1>
+        <h2>개별 컨설팅 예약</h2>
+
+        <div class="info-box">
+          <strong>진단검사 완료 후 개별 컨설팅 예약</strong>
+          <ul>
+            <li>진단검사 결과를 바탕으로 1:1 맞춤 컨설팅</li>
+            <li>소요시간: 30분</li>
+            <li>학습 로드맵 및 커리큘럼 설계</li>
+          </ul>
+        </div>
+
+        <div
+          style="
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+          "
+        >
+          <h3 style="margin-bottom: 20px">본인 확인</h3>
+          <p style="margin-bottom: 20px; color: #666; font-size: 14px">
+            진단검사를 완료하신 학부모님의 연락처를 입력해주세요.
+          </p>
+
+          <div class="form-group">
+            <label>학부모 연락처</label>
+            <input
+              type="tel"
+              id="phoneInput"
+              placeholder="010-0000-0000"
+              maxlength="13"
+              required
+            />
+          </div>
+
+          <button class="btn btn-primary" onclick="verifyUser()">확인</button>
+
+          <div
+            style="
+              margin-top: 20px;
+              padding-top: 20px;
+              border-top: 1px solid #e0e0e0;
+            "
+          >
+            <button
+              class="btn btn-secondary"
+              onclick="checkExistingReservation()"
+            >
+              예약 확인/취소
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 진단검사 미신청자 안내 -->
+      <div id="testGuideRedirect" class="card hidden">
+        <h1>수학의 아침 X i.study [수리탐구]</h1>
+        <h2>진단검사 신청 필요</h2>
+
+        <div class="error-box">
+          <p><strong>⚠️ 진단검사 신청 내역이 없습니다</strong></p>
+          <p style="margin-top: 10px">
+            개별 컨설팅 예약을 위해서는 먼저 진단검사를 신청하셔야 합니다.
+          </p>
+        </div>
+
+        <div class="info-box">
+          <strong>진단검사 신청 절차</strong>
+          <ol style="margin-left: 20px">
+            <li>진단검사 신청 페이지로 이동</li>
+            <li>시험지 다운로드 및 응시</li>
+            <li>컨설팅 예약 가능</li>
+          </ol>
+        </div>
+
+        <button class="btn btn-link" onclick="goToTestGuide()">
+          진단검사 신청하러 가기
+        </button>
+        <button
+          class="btn btn-secondary"
+          onclick="showStep('mainScreen')"
+          style="margin-top: 10px"
+        >
+          처음으로 돌아가기
+        </button>
+      </div>
+
+      <!-- STEP 2: 날짜 선택 -->
+      <div id="step2" class="card hidden">
+        <h1>수학의 아침 X i.study [수리탐구]</h1>
+        <h3>컨설팅 날짜 선택</h3>
+        <p style="margin-bottom: 20px; color: #666">
+          원하시는 날짜를 선택해주세요.
+        </p>
+
+        <div class="date-selector" id="dateSelector">
+          <!-- 동적으로 생성됨 -->
+        </div>
+
+        <button
+          class="btn btn-primary"
+          onclick="proceedToTimeSelection()"
+          disabled
+          id="dateNextBtn"
+        >
+          시간 선택하기
+        </button>
+        <button
+          class="btn btn-secondary"
+          onclick="showStep('mainScreen')"
+          style="margin-top: 10px"
+        >
+          처음으로 돌아가기
+        </button>
+      </div>
+
+      <!-- STEP 3: 시간 선택 -->
+      <div id="step3" class="card hidden">
+        <h1>수학의 아침 X i.study [수리탐구]</h1>
+        <h3>컨설팅 시간 선택</h3>
+        <p style="margin-bottom: 20px; color: #666">
+          <span id="selectedDateDisplay"></span>의 예약 가능한 시간입니다.
+        </p>
+
+        <div class="time-selector">
+          <div class="time-grid" id="timeGrid">
+            <!-- 동적으로 생성됨 -->
+          </div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="backToDateSelection()">
+          날짜 다시 선택
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="confirmReservation()"
+          disabled
+          id="confirmBtn"
+        >
+          예약 확정하기
+        </button>
+      </div>
+
+      <!-- STEP 4: 예약 완료 -->
+      <div id="step4" class="card hidden">
+        <h1>수학의 아침 X i.study [수리탐구]</h1>
+        <div class="success-icon">✅</div>
+        <h3 style="text-align: center; margin-bottom: 20px">
+          컨설팅 예약이 완료되었습니다!
+        </h3>
+
+        <div class="reservation-info">
+          <div class="info-item">
+            <span class="info-label">예약번호:</span>
+            <span class="info-value" id="confirmReservationId">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">학생명:</span>
+            <span class="info-value" id="confirmName">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">컨설팅 날짜:</span>
+            <span class="info-value" id="confirmDate">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">컨설팅 시간:</span>
+            <span class="info-value" id="confirmTime">-</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">장소:</span>
+            <span class="info-value">수학의 아침 학원</span>
+          </div>
+        </div>
+
+        <div class="warning-box">
+          <h4 style="margin-bottom: 10px">📌 컨설팅 준비사항</h4>
+          <ul style="margin-left: 20px">
+            <li>작성한 진단검사 시험지 지참</li>
+            <li>최근 성적표나 문제집 지참(선택)</li>
+          </ul>
+        </div>
+
+        <button class="btn btn-primary" onclick="showStep('mainScreen')">
+          홈으로 돌아가기
+        </button>
+      </div>
+
+      <!-- 예약 확인 -->
+      <div id="checkReservation" class="card hidden">
+        <h1>수학의 아침 X i.study [수리탐구]</h1>
+        <h3>예약 확인/취소</h3>
+        <p style="margin-bottom: 20px; color: #666">
+          예약 시 등록한 연락처를 입력해주세요.
+        </p>
+
+        <div class="form-group">
+          <label>학부모 연락처</label>
+          <input
+            type="tel"
+            id="checkPhoneInput"
+            placeholder="010-0000-0000"
+            maxlength="13"
+            required
+          />
+        </div>
+
+        <button class="btn btn-primary" onclick="checkReservation()">
+          예약 조회
+        </button>
+        <button
+          class="btn btn-secondary"
+          onclick="showStep('mainScreen')"
+          style="margin-top: 10px"
+        >
+          처음으로 돌아가기
+        </button>
+      </div>
+
+      <!-- 예약 조회 결과 -->
+      <div id="reservationResult" class="card hidden">
+        <h1>수학의 아침 X i.study [수리탐구]</h1>
+        <h3>예약 정보</h3>
+
+        <div class="reservation-info" id="reservationInfo">
+          <!-- 동적으로 생성됨 -->
+        </div>
+
+        <button class="btn btn-danger" onclick="cancelReservation()">
+          예약 취소하기
+        </button>
+        <button
+          class="btn btn-secondary"
+          onclick="showStep('checkReservation')"
+          style="margin-top: 10px"
+        >
+          다시 조회
+        </button>
+        <button
+          class="btn btn-primary"
+          onclick="showStep('mainScreen')"
+          style="margin-top: 10px"
+        >
+          처음으로 돌아가기
+        </button>
+      </div>
+
+      <!-- 로딩 -->
+      <div id="loading" class="card hidden">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>처리 중입니다...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 토스트 메시지 -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+      // Supabase 설정
+      const SUPABASE_URL = 'https://xooglumwuzctbcjtcvnd.supabase.co';
+      const SUPABASE_ANON_KEY =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb2dsdW13dXpjdGJjanRjdm5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1OTk5OTgsImV4cCI6MjA3MTE3NTk5OH0.Uza-Z3CzwQgkYKJmKdwTNCAYgaxeKFs__2udUSAGpJg';
+      const supabase = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+      );
+
+      // 전역 변수
+      let currentUser = null;
+      let selectedDate = null;
+      let selectedTime = null;
+      let selectedSlotId = null;
+      let currentReservation = null;
+
+      // 전화번호 포맷 (자동 하이픈)
+      function formatPhoneInput(input) {
+        let value = input.value.replace(/[^0-9]/g, '');
+
+        if (value.length > 3 && value.length <= 7) {
+          value = value.slice(0, 3) + '-' + value.slice(3);
+        } else if (value.length > 7) {
+          value =
+            value.slice(0, 3) +
+            '-' +
+            value.slice(3, 7) +
+            '-' +
+            value.slice(7, 11);
+        }
+
+        input.value = value;
+      }
+
+      // 전화번호 입력 이벤트
+      document
+        .getElementById('phoneInput')
+        .addEventListener('input', function () {
+          formatPhoneInput(this);
+        });
+
+      document
+        .getElementById('checkPhoneInput')
+        .addEventListener('input', function () {
+          formatPhoneInput(this);
+        });
+
+      // 전화번호 포맷 (DB용)
+      function formatPhone(phone) {
+        const cleaned = phone.replace(/\D/g, '');
+        if (cleaned.length === 11) {
+          return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(
+            7
+          )}`;
+        }
+        return phone;
+      }
+
+      // 오늘 날짜 가져오기
+      function getTodayString() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+
+      // 내일 날짜 가져오기
+      function getTomorrowString() {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const year = tomorrow.getFullYear();
+        const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const day = String(tomorrow.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+
+      // 날짜 비교
+      function compareDates(date1, date2) {
+        return new Date(date1) - new Date(date2);
+      }
+
+      // 화면 전환
+      function showStep(stepId) {
+        document.querySelectorAll('.card').forEach((card) => {
+          card.classList.add('hidden');
+        });
+        document.getElementById(stepId).classList.remove('hidden');
+
+        // 메인 화면으로 돌아올 때 입력값 초기화
+        if (stepId === 'mainScreen') {
+          document.getElementById('phoneInput').value = '';
+          currentUser = null;
+          selectedDate = null;
+          selectedTime = null;
+          selectedSlotId = null;
+        }
+      }
+
+      // 토스트 메시지
+      function showToast(message, type = 'info') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'toast';
+
+        if (type === 'error') {
+          toast.classList.add('error');
+        } else if (type === 'success') {
+          toast.classList.add('success');
+        } else if (type === 'warning') {
+          toast.classList.add('warning');
+        }
+
+        toast.classList.add('show');
+
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      }
+
+      // 로딩 표시
+      function showLoading() {
+        document.getElementById('loading').classList.remove('hidden');
+      }
+
+      function hideLoading() {
+        document.getElementById('loading').classList.add('hidden');
+      }
+
+      // 진단검사 페이지로 이동
+      function goToTestGuide() {
+        window.location.href = 'test-guide.html';
+      }
+
+      // 본인 확인
+      async function verifyUser() {
+        const phone = document.getElementById('phoneInput').value;
+        const formattedPhone = formatPhone(phone);
+
+        if (!formattedPhone || formattedPhone.length < 13) {
+          showToast('올바른 전화번호를 입력해주세요', 'error');
+          return;
+        }
+
+        showLoading();
+
+        try {
+          // 1. 진단검사 완료자 확인
+          const { data: testUser, error: testError } = await supabase
+            .from('reservations')
+            .select('*')
+            .eq('parent_phone', formattedPhone)
+            .eq('post_checkin_choice', 'test')
+            .order('id', { ascending: false })
+            .limit(1);
+
+          if (!testUser || testUser.length === 0) {
+            hideLoading();
+            // 진단검사 신청 안내 화면으로 이동
+            showStep('testGuideRedirect');
+            return;
+          }
+
+          // 2. 기존 컨설팅 예약 확인 (중복 방지)
+          const { data: existingReservations, error: existError } =
+            await supabase
+              .from('consulting_reservations')
+              .select('*')
+              .eq('parent_phone', formattedPhone)
+              .eq('status', 'confirmed');
+
+          if (existingReservations && existingReservations.length > 0) {
+            const existingReservation = existingReservations[0];
+            // 슬롯 정보 별도 조회
+            const { data: slot, error: slotError } = await supabase
+              .from('consulting_slots')
+              .select('*')
+              .eq('id', existingReservation.slot_id)
+              .single();
+
+            hideLoading();
+
+            if (slot) {
+              const dateObj = new Date(slot.date);
+              const dateStr = `${
+                dateObj.getMonth() + 1
+              }월 ${dateObj.getDate()}일`;
+
+              showToast(
+                `이미 ${dateStr} ${slot.time.slice(
+                  0,
+                  5
+                )}에 예약이 있습니다. 예약 확인 메뉴를 이용해주세요.`,
+                'warning'
+              );
+
+              // 예약 확인 화면으로 이동할지 묻기
+              if (confirm('기존 예약을 확인하시겠습니까?')) {
+                document.getElementById('checkPhoneInput').value =
+                  formattedPhone;
+                showStep('checkReservation');
+              }
+            }
+            return;
+          }
+
+          currentUser = testUser[0];
+          hideLoading();
+          showDateSelection();
+        } catch (error) {
+          console.error('Error:', error);
+          hideLoading();
+          showToast('오류가 발생했습니다.', 'error');
+        }
+      }
+
+      // 기존 예약 확인 (메인 화면에서)
+      function checkExistingReservation() {
+        showStep('checkReservation');
+      }
+
+      // 날짜 선택 화면
+      async function showDateSelection() {
+        showStep('step2');
+        await loadAvailableDates();
+      }
+
+      // 예약 가능한 날짜 로드
+      async function loadAvailableDates() {
+        const dateSelector = document.getElementById('dateSelector');
+        dateSelector.innerHTML =
+          '<div class="loading">날짜를 불러오는 중...</div>';
+
+        const tomorrow = getTomorrowString();
+        const baseDate = new Date('2025-09-09');
+        let currentWeek = 0;
+        let dateFound = false;
+
+        dateSelector.innerHTML = '';
+
+        // 최대 4주까지 확인하되, 날짜 하나만 찾으면 중단
+        while (currentWeek < 4 && !dateFound) {
+          const weekContainer = document.createElement('div');
+          weekContainer.className = 'week-container';
+
+          const dateGrid = document.createElement('div');
+          dateGrid.className = 'date-grid';
+
+          // 화요일
+          const tuesday = new Date(baseDate);
+          tuesday.setDate(tuesday.getDate() + currentWeek * 7);
+
+          // 목요일
+          const thursday = new Date(tuesday);
+          thursday.setDate(thursday.getDate() + 2);
+
+          // 실제 잔여석 확인
+          const tuesdaySlots = await checkAvailability(tuesday);
+          const thursdaySlots = await checkAvailability(thursday);
+
+          // 날짜 카드 생성
+          const tuesdayCard = createDateCard(
+            tuesday,
+            'TUE',
+            tuesdaySlots,
+            tomorrow
+          );
+          const thursdayCard = createDateCard(
+            thursday,
+            'THU',
+            thursdaySlots,
+            tomorrow
+          );
+
+          // 화요일에 잔여석이 있으면 화요일만 표시
+          if (tuesdaySlots !== null && tuesdaySlots > 0) {
+            dateGrid.appendChild(tuesdayCard);
+            dateFound = true;
+          }
+          // 화요일이 마감이고 목요일에 잔여석이 있으면 목요일만 표시
+          else if (
+            tuesdaySlots === 0 &&
+            thursdaySlots !== null &&
+            thursdaySlots > 0
+          ) {
+            dateGrid.appendChild(thursdayCard);
+            dateFound = true;
+          }
+          // 둘 다 마감이면 다음 주로
+          else if (tuesdaySlots === 0 && thursdaySlots === 0) {
+            currentWeek++;
+            continue;
+          }
+
+          if (dateGrid.children.length > 0) {
+            weekContainer.appendChild(dateGrid);
+            dateSelector.appendChild(weekContainer);
+          }
+        }
+
+        if (dateSelector.children.length === 0) {
+          dateSelector.innerHTML =
+            '<div class="error-box">현재 예약 가능한 날짜가 없습니다.</div>';
+        }
+      }
+
+      // 잔여석 확인
+      async function checkAvailability(date) {
+        try {
+          const dateStr = date.toISOString().split('T')[0];
+          const tomorrow = getTomorrowString();
+
+          // 내일보다 이전 날짜는 예약 불가
+          if (compareDates(dateStr, tomorrow) < 0) {
+            return null;
+          }
+
+          // 방법: 해당 날짜의 슬롯과 예약을 별도로 조회
+          const { data: slots, error: slotsError } = await supabase
+            .from('consulting_slots')
+            .select('id')
+            .eq('date', dateStr);
+
+          if (slotsError) {
+            console.error('Slots error in checkAvailability:', slotsError);
+            return 9; // 에러시 기본값
+          }
+
+          let bookedCount = 0;
+
+          if (slots && slots.length > 0) {
+            const slotIds = slots.map((s) => s.id);
+            const { data: reservations, error: resError } = await supabase
+              .from('consulting_reservations')
+              .select('id')
+              .in('slot_id', slotIds)
+              .eq('status', 'confirmed');
+
+            if (!resError && reservations) {
+              bookedCount = reservations.length;
+            }
+          }
+
+          // 총 9개 슬롯 (10:30 ~ 14:30)
+          const totalSlots = 9;
+          const availableSlots = totalSlots - bookedCount;
+
+          return availableSlots;
+        } catch (error) {
+          console.error('Error checking availability:', error);
+          return 9; // 에러시 기본값
+        }
+      }
+
+      // 날짜 카드 생성
+      function createDateCard(date, dayOfWeek, availableSlots, tomorrow) {
+        const card = document.createElement('div');
+        card.className = 'date-card';
+
+        const dateStr = date.toISOString().split('T')[0];
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const dayName = dayOfWeek === 'TUE' ? '화요일' : '목요일';
+
+        const isPast = compareDates(dateStr, tomorrow) < 0;
+        const isFull = availableSlots === 0;
+
+        if (isPast) {
+          card.classList.add('past');
+        } else if (isFull) {
+          card.classList.add('full');
+        }
+
+        let statusClass = 'remaining-seats';
+        let statusText = `잔여 ${availableSlots}석`;
+
+        if (isPast) {
+          statusClass += ' full';
+          statusText = '예약 불가';
+        } else if (isFull) {
+          statusClass += ' full';
+          statusText = '마감';
+        } else if (availableSlots <= 3) {
+          statusClass += ' few';
+        }
+
+        card.innerHTML = `
+          <div class="date-header">
+            <span class="date-month">${month}월</span>
+            <span class="date-day">${day}</span>
+            <span class="date-weekday">${dayName}</span>
+          </div>
+          <div class="date-info">
+            <div class="${statusClass}">
+              ${statusText}
+            </div>
+          </div>
+        `;
+
+        if (!isPast && !isFull) {
+          card.onclick = () => selectDate(dateStr, dayOfWeek, card);
+        }
+
+        return card;
+      }
+
+      // 날짜 선택
+      function selectDate(date, dayOfWeek, element) {
+        document.querySelectorAll('.date-card').forEach((card) => {
+          card.classList.remove('selected');
+        });
+
+        element.classList.add('selected');
+        selectedDate = { date, dayOfWeek };
+
+        document.getElementById('dateNextBtn').disabled = false;
+      }
+
+      // 시간 선택으로 진행
+      async function proceedToTimeSelection() {
+        if (!selectedDate) return;
+
+        showStep('step3');
+
+        // 선택한 날짜 표시
+        const dateObj = new Date(selectedDate.date);
+        const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 ${
+          selectedDate.dayOfWeek === 'TUE' ? '화요일' : '목요일'
+        }`;
+        document.getElementById('selectedDateDisplay').textContent = dateStr;
+
+        await loadTimeSlots();
+      }
+
+      // 시간 슬롯 로드
+      async function loadTimeSlots() {
+        const timeGrid = document.getElementById('timeGrid');
+        timeGrid.innerHTML = '<div class="loading">시간을 불러오는 중...</div>';
+
+        const times = [
+          '10:30',
+          '11:00',
+          '11:30',
+          '12:00',
+          '12:30',
+          '13:00',
+          '13:30',
+          '14:00',
+          '14:30',
+        ];
+
+        try {
+          // 방법 1: JOIN을 사용하지 않고 별도로 조회
+          // 먼저 해당 날짜의 슬롯들을 조회
+          const { data: slots, error: slotsError } = await supabase
+            .from('consulting_slots')
+            .select('*')
+            .eq('date', selectedDate.date);
+
+          if (slotsError) {
+            console.error('Slots query error:', slotsError);
+            throw slotsError;
+          }
+
+          // 예약된 슬롯 ID들 가져오기
+          const slotIds = slots ? slots.map((s) => s.id) : [];
+          let bookedSlotIds = [];
+
+          if (slotIds.length > 0) {
+            const { data: reservations, error: resError } = await supabase
+              .from('consulting_reservations')
+              .select('slot_id')
+              .in('slot_id', slotIds)
+              .eq('status', 'confirmed');
+
+            if (resError) {
+              console.error('Reservations query error:', resError);
+              throw resError;
+            }
+
+            bookedSlotIds = reservations
+              ? reservations.map((r) => r.slot_id)
+              : [];
+          }
+
+          // 예약된 시간 찾기
+          const bookedTimes = slots
+            ? slots
+                .filter((s) => bookedSlotIds.includes(s.id))
+                .map((s) => s.time.slice(0, 5))
+            : [];
+
+          console.log('Booked times:', bookedTimes);
+
+          timeGrid.innerHTML = '';
+
+          times.forEach((time) => {
+            const slot = document.createElement('div');
+            slot.className = 'time-slot';
+
+            const isBooked = bookedTimes.includes(time);
+
+            if (isBooked) {
+              slot.classList.add('unavailable');
+            }
+
+            slot.innerHTML = `
+              <div class="time-text">${time}</div>
+              <div class="time-status">${
+                !isBooked ? '예약 가능' : '예약 완료'
+              }</div>
+            `;
+
+            if (!isBooked) {
+              slot.onclick = () => selectTime(time, slot);
+            }
+
+            timeGrid.appendChild(slot);
+          });
+        } catch (error) {
+          console.error('Error loading time slots:', error);
+          // 에러 발생시 모든 시간을 예약 가능으로 표시 (폴백)
+          timeGrid.innerHTML = '';
+
+          times.forEach((time) => {
+            const slot = document.createElement('div');
+            slot.className = 'time-slot';
+
+            slot.innerHTML = `
+              <div class="time-text">${time}</div>
+              <div class="time-status">예약 가능</div>
+            `;
+
+            slot.onclick = () => selectTime(time, slot);
+
+            timeGrid.appendChild(slot);
+          });
+        }
+      }
+
+      // 시간 선택
+      function selectTime(time, element) {
+        document.querySelectorAll('.time-slot').forEach((slot) => {
+          slot.classList.remove('selected');
+        });
+
+        element.classList.add('selected');
+        selectedTime = time;
+
+        document.getElementById('confirmBtn').disabled = false;
+      }
+
+      // 날짜 선택으로 돌아가기
+      function backToDateSelection() {
+        showStep('step2');
+        selectedTime = null;
+        document.getElementById('confirmBtn').disabled = true;
+      }
+
+      // 예약 확정
+      async function confirmReservation() {
+        if (!selectedDate || !selectedTime || !currentUser) return;
+
+        const tomorrow = getTomorrowString();
+        if (compareDates(selectedDate.date, tomorrow) < 0) {
+          showToast('예약은 내일부터 가능합니다.', 'error');
+          return;
+        }
+
+        showLoading();
+
+        try {
+          // 슬롯 생성 또는 조회
+          let slotId;
+
+          // 먼저 해당 날짜/시간의 슬롯이 있는지 확인
+          const { data: existingSlot, error: slotCheckError } = await supabase
+            .from('consulting_slots')
+            .select('*')
+            .eq('date', selectedDate.date)
+            .eq('time', selectedTime + ':00')
+            .single();
+
+          if (existingSlot) {
+            slotId = existingSlot.id;
+
+            // 이미 예약이 있는지 재확인
+            const { data: existingReservation } = await supabase
+              .from('consulting_reservations')
+              .select('*')
+              .eq('slot_id', slotId)
+              .eq('status', 'confirmed')
+              .single();
+
+            if (existingReservation) {
+              hideLoading();
+              showToast(
+                '해당 시간은 이미 예약되었습니다. 다른 시간을 선택해주세요.',
+                'error'
+              );
+              await loadTimeSlots();
+              return;
+            }
+          } else {
+            // 슬롯 생성
+            const { data: newSlot, error: slotError } = await supabase
+              .from('consulting_slots')
+              .insert([
+                {
+                  date: selectedDate.date,
+                  time: selectedTime + ':00',
+                  day_of_week: selectedDate.dayOfWeek,
+                  max_capacity: 1,
+                  current_bookings: 0,
+                  is_available: true,
+                },
+              ])
+              .select()
+              .single();
+
+            if (slotError) throw slotError;
+            slotId = newSlot.id;
+          }
+
+          // 예약 저장 (이 부분이 빠짐)
+          const { data: reservation, error: resError } = await supabase
+            .from('consulting_reservations')
+            .insert([
+              {
+                slot_id: slotId,
+                student_name: currentUser.student_name,
+                parent_phone: currentUser.parent_phone,
+                school: currentUser.school || 'UNKNOWN',
+                grade: currentUser.grade || 'UNKNOWN',
+                test_type: currentUser.test_type || 'UNKNOWN',
+                test_completed: true,
+                status: 'confirmed',
+                notes: `${selectedDate.date} ${selectedTime} 컨설팅 예약`,
+              },
+            ])
+            .select()
+            .single();
+
+          if (resError) throw resError;
+
+          hideLoading();
+          showConfirmation(reservation);
+        } catch (error) {
+          console.error('Error:', error);
+          hideLoading();
+          showToast('예약 처리 중 오류가 발생했습니다.', 'error');
+        }
+      }
+
+      // 예약 완료 화면
+      function showConfirmation(reservation) {
+        showStep('step4');
+
+        // UUID의 앞 8자리를 예약번호로 사용
+        const shortId = reservation.id
+          ? reservation.id.slice(0, 8).toUpperCase()
+          : '-';
+        document.getElementById('confirmReservationId').textContent = shortId;
+        document.getElementById('confirmName').textContent =
+          reservation.student_name;
+
+        const dateObj = new Date(selectedDate.date);
+        const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 ${
+          selectedDate.dayOfWeek === 'TUE' ? '화요일' : '목요일'
+        }`;
+        document.getElementById('confirmDate').textContent = dateStr;
+        document.getElementById('confirmTime').textContent = selectedTime;
+
+        // 초기화
+        currentUser = null;
+        selectedDate = null;
+        selectedTime = null;
+        selectedSlotId = null;
+      }
+
+      // 예약 확인
+      async function checkReservation() {
+        const phone = document.getElementById('checkPhoneInput').value;
+        const formattedPhone = formatPhone(phone);
+
+        if (!formattedPhone || formattedPhone.length < 13) {
+          showToast('올바른 전화번호를 입력해주세요', 'error');
+          return;
+        }
+
+        showLoading();
+
+        try {
+          // 먼저 예약 정보 조회
+          const { data: reservation, error: resError } = await supabase
+            .from('consulting_reservations')
+            .select('*')
+            .eq('parent_phone', formattedPhone)
+            .eq('status', 'confirmed')
+            .single();
+
+          if (resError || !reservation) {
+            hideLoading();
+            showToast('예약 정보를 찾을 수 없습니다.', 'error');
+            return;
+          }
+
+          // 슬롯 정보 별도 조회
+          const { data: slot, error: slotError } = await supabase
+            .from('consulting_slots')
+            .select('*')
+            .eq('id', reservation.slot_id)
+            .single();
+
+          if (slotError || !slot) {
+            hideLoading();
+            showToast('예약 정보를 불러오는 중 오류가 발생했습니다.', 'error');
+            return;
+          }
+
+          // 예약 정보에 슬롯 정보 추가
+          reservation.consulting_slots = slot;
+
+          hideLoading();
+          currentReservation = reservation;
+          showReservationResult(reservation);
+        } catch (error) {
+          console.error('Error:', error);
+          hideLoading();
+          showToast('예약 조회 중 오류가 발생했습니다.', 'error');
+        }
+      }
+
+      // 예약 결과 표시
+      function showReservationResult(reservation) {
+        const slot = reservation.consulting_slots;
+        const dateObj = new Date(slot.date);
+        const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`;
+        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+        const dayName = dayNames[dateObj.getDay()];
+
+        // UUID의 앞 8자리를 예약번호로 사용
+        const shortId = reservation.id
+          ? reservation.id.slice(0, 8).toUpperCase()
+          : '-';
+
+        const infoHtml = `
+          <div class="info-item">
+            <span class="info-label">예약번호:</span>
+            <span class="info-value">${shortId}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">학생명:</span>
+            <span class="info-value">${reservation.student_name}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">컨설팅 날짜:</span>
+            <span class="info-value">${dateStr} (${dayName})</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">컨설팅 시간:</span>
+            <span class="info-value">${slot.time.slice(0, 5)}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">연락처:</span>
+            <span class="info-value">${reservation.parent_phone}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">학교:</span>
+            <span class="info-value">${reservation.school}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">학년:</span>
+            <span class="info-value">${reservation.grade}</span>
+          </div>
+        `;
+
+        document.getElementById('reservationInfo').innerHTML = infoHtml;
+        showStep('reservationResult');
+      }
+
+      // 예약 취소
+      async function cancelReservation() {
+        if (!currentReservation) return;
+
+        if (
+          !confirm(
+            '정말로 예약을 취소하시겠습니까?\n취소 후에는 복구할 수 없습니다.'
+          )
+        ) {
+          return;
+        }
+
+        showLoading();
+
+        try {
+          // 예약 상태를 cancelled로 변경
+          const { error } = await supabase
+            .from('consulting_reservations')
+            .update({ status: 'cancelled' })
+            .eq('id', currentReservation.id);
+
+          if (error) throw error;
+
+          hideLoading();
+          showToast('예약이 취소되었습니다.', 'success');
+
+          // 초기화
+          currentReservation = null;
+          document.getElementById('checkPhoneInput').value = '';
+          showStep('mainScreen');
+        } catch (error) {
+          console.error('Error:', error);
+          hideLoading();
+          showToast('예약 취소 중 오류가 발생했습니다.', 'error');
+        }
+      }
+
+      // 페이지 로드시 초기화
+      document.addEventListener('DOMContentLoaded', function () {
+        showStep('mainScreen');
+      });
+    </script>
+  </body>
+</html>
