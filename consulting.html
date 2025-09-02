@@ -845,8 +845,24 @@
         showLoading();
 
         try {
-          // 1. 진단검사 완료자 확인
-          const { data: testUser, error: testError } = await supabase
+          // ⭐ 1. 먼저 test_applications 테이블 확인
+          const { data: testApplication } = await supabase
+            .from('test_applications')
+            .select('*')
+            .eq('parent_phone', formattedPhone)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          // ⭐ 2. test_applications에 있으면 OK
+          if (testApplication && testApplication.length > 0) {
+            currentUser = testApplication[0];
+            hideLoading();
+            showDateSelection();
+            return;
+          }
+
+          // ⭐ 3. 없으면 reservations 테이블도 확인 (하위 호환성)
+          const { data: testUser } = await supabase
             .from('reservations')
             .select('*')
             .eq('parent_phone', formattedPhone)
@@ -854,59 +870,16 @@
             .order('id', { ascending: false })
             .limit(1);
 
-          if (!testUser || testUser.length === 0) {
+          if (testUser && testUser.length > 0) {
+            currentUser = testUser[0];
             hideLoading();
-            // 진단검사 신청 안내 화면으로 이동
-            showStep('testGuideRedirect');
+            showDateSelection();
             return;
           }
 
-          // 2. 기존 컨설팅 예약 확인 (중복 방지)
-          const { data: existingReservations, error: existError } =
-            await supabase
-              .from('consulting_reservations')
-              .select('*')
-              .eq('parent_phone', formattedPhone)
-              .eq('status', 'confirmed');
-
-          if (existingReservations && existingReservations.length > 0) {
-            const existingReservation = existingReservations[0];
-            // 슬롯 정보 별도 조회
-            const { data: slot, error: slotError } = await supabase
-              .from('consulting_slots')
-              .select('*')
-              .eq('id', existingReservation.slot_id)
-              .single();
-
-            hideLoading();
-
-            if (slot) {
-              const dateObj = new Date(slot.date);
-              const dateStr = `${
-                dateObj.getMonth() + 1
-              }월 ${dateObj.getDate()}일`;
-
-              showToast(
-                `이미 ${dateStr} ${slot.time.slice(
-                  0,
-                  5
-                )}에 예약이 있습니다. 예약 확인 메뉴를 이용해주세요.`,
-                'warning'
-              );
-
-              // 예약 확인 화면으로 이동할지 묻기
-              if (confirm('기존 예약을 확인하시겠습니까?')) {
-                document.getElementById('checkPhoneInput').value =
-                  formattedPhone;
-                showStep('checkReservation');
-              }
-            }
-            return;
-          }
-
-          currentUser = testUser[0];
+          // 4. 둘 다 없으면 진단검사 안내
           hideLoading();
-          showDateSelection();
+          showStep('testGuideRedirect');
         } catch (error) {
           console.error('Error:', error);
           hideLoading();
