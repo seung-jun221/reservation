@@ -15,6 +15,7 @@ const globalState = {
     reservations: [],
     testApplications: [],
     consultingSlots: [],
+    consultingReservations: [],
   },
   filters: {
     status: '',
@@ -29,12 +30,14 @@ const globalState = {
 let allReservations = [];
 let allTestApplications = [];
 let allConsultingSlots = [];
+let allConsultingReservations = [];
 let allSeminars = [];
 
-// ===== 필터링된 데이터 =====
-let filteredReservations = [];
-let filteredTestApplications = [];
-let filteredConsultingSlots = [];
+// ===== 필터링된 데이터 (전역 접근 가능) =====
+window.filteredReservations = [];
+window.filteredTestApplications = [];
+window.filteredConsultingSlots = [];
+window.filteredConsultingReservations = [];
 
 // ===== 초기화 =====
 document.addEventListener('DOMContentLoaded', async function () {
@@ -78,15 +81,24 @@ const MonitoringCore = {
   },
 
   async loadSeminars() {
-    const { data, error } = await supabase
+    const { data: seminars, error } = await supabase
       .from('seminars')
       .select('*')
       .order('date', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('설명회 로드 실패:', error);
+      return;
+    }
 
-    allSeminars = data || [];
+    // ID는 문자열로 유지
+    allSeminars = seminars || [];
     globalState.seminars = allSeminars;
+    console.log('설명회 데이터 로드:', allSeminars.length, '개');
+    console.log(
+      '설명회 ID 샘플:',
+      allSeminars.map((s) => s.id)
+    );
 
     // 설명회 선택기 업데이트
     this.updateSeminarSelector();
@@ -96,59 +108,81 @@ const MonitoringCore = {
     const selector = document.getElementById('globalSeminarFilter');
     if (!selector) return;
 
-    // 기존 옵션 유지하고 동적 옵션만 추가
-    const existingValue = selector.value;
-
-    // 전체 옵션과 구분선 이후 모든 옵션 제거
-    while (selector.options.length > 2) {
-      selector.remove(2);
-    }
+    // 기존 옵션 유지 (전체, 구분선)
+    selector.innerHTML = `
+      <option value="all">📊 전체 설명회</option>
+      <option value="divider" disabled>──────────────</option>
+    `;
 
     // 설명회 옵션 추가
     allSeminars.forEach((seminar) => {
-      const option = document.createElement('option');
-      option.value = seminar.id;
-
       const date = new Date(seminar.date);
       const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
-      const location = seminar.title.split('-').pop()?.trim() || '기타';
 
-      option.textContent = `📍 ${dateStr} ${location} (${seminar.title})`;
+      // 제목에서 위치 추출
+      let location = '설명회';
+      if (seminar.title) {
+        const parts = seminar.title.split('-');
+        if (parts.length > 1) {
+          location = parts[parts.length - 1].trim();
+        } else {
+          // 하이픈이 없으면 제목을 짧게 표시
+          location =
+            seminar.title
+              .replace('VIP 학부모 설명회', '')
+              .replace('수학의 아침', '수학')
+              .trim() || '설명회';
+        }
+      }
+
+      const option = document.createElement('option');
+      option.value = seminar.id; // 문자열 ID 그대로 사용
+      option.textContent = `${dateStr} ${location}`;
       selector.appendChild(option);
     });
 
-    // 이전 선택값 복원
-    if (existingValue) {
-      selector.value = existingValue;
-    }
+    console.log(
+      '설명회 선택기 업데이트 완료:',
+      allSeminars.map((s) => ({ id: s.id, title: s.title }))
+    );
   },
 
   async loadAllData() {
     try {
-      // 병렬로 데이터 로드
-      const [reservations, testApps, consultings] = await Promise.all([
-        this.loadReservations(),
-        this.loadTestApplications(),
-        this.loadConsultingSlots(),
-      ]);
+      console.log('전체 데이터 로드 시작...');
+
+      // 병렬로 모든 데이터 로드
+      const [reservations, testApps, consultingSlots, consultingReservations] =
+        await Promise.all([
+          this.loadReservations(),
+          this.loadTestApplications(),
+          this.loadConsultingSlots(),
+          this.loadConsultingReservations(),
+        ]);
 
       allReservations = reservations || [];
       allTestApplications = testApps || [];
-      allConsultingSlots = consultings || [];
+      allConsultingSlots = consultingSlots || [];
+      allConsultingReservations = consultingReservations || [];
 
-      // 캐시 업데이트
+      // 데이터 캐시
       globalState.cache.reservations = allReservations;
       globalState.cache.testApplications = allTestApplications;
       globalState.cache.consultingSlots = allConsultingSlots;
+      globalState.cache.consultingReservations = allConsultingReservations;
+
+      console.log('데이터 로드 완료:', {
+        예약: allReservations.length,
+        진단검사: allTestApplications.length,
+        컨설팅슬롯: allConsultingSlots.length,
+        컨설팅예약: allConsultingReservations.length,
+      });
 
       // 필터링 적용
       this.applyGlobalFilter();
-
-      // 각 모듈 업데이트
-      this.updateAllModules();
     } catch (error) {
       console.error('데이터 로드 실패:', error);
-      showToast('데이터를 불러올 수 없습니다', 'error');
+      throw error;
     }
   },
 
@@ -159,7 +193,13 @@ const MonitoringCore = {
       .order('registered_at', { ascending: false });
 
     if (error) throw error;
-    return data;
+
+    // ID는 문자열로 유지
+    console.log('예약 데이터 로드 완료:', (data || []).length);
+    if (data && data.length > 0) {
+      console.log('예약 샘플 seminar_id:', data[0].seminar_id);
+    }
+    return data || [];
   },
 
   async loadTestApplications() {
@@ -169,60 +209,182 @@ const MonitoringCore = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data;
+
+    console.log('진단검사 데이터 로드 완료:', (data || []).length);
+    return data || [];
   },
 
   async loadConsultingSlots() {
     const { data, error } = await supabase
       .from('consulting_slots')
-      .select('*, consulting_reservations(*)')
+      .select('*')
       .order('date', { ascending: true });
 
     if (error) throw error;
-    return data;
+
+    console.log('컨설팅 슬롯 로드 완료:', (data || []).length);
+    return data || [];
+  },
+
+  async loadConsultingReservations() {
+    const { data, error } = await supabase
+      .from('consulting_reservations')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    console.log('컨설팅 예약 로드 완료:', (data || []).length);
+    return data || [];
   },
 
   applyGlobalFilter() {
-    const selectedSeminar = globalState.selectedSeminar;
+    const seminarId = globalState.selectedSeminar;
 
-    if (!selectedSeminar || selectedSeminar === 'all') {
-      // 전체 데이터 사용
-      filteredReservations = [...allReservations];
-      filteredTestApplications = [...allTestApplications];
-      filteredConsultingSlots = [...allConsultingSlots];
+    console.log('필터링 시작 - 선택된 설명회 ID:', seminarId);
+    console.log('전체 예약 데이터:', allReservations.length);
+    console.log(
+      '전체 설명회 목록:',
+      allSeminars.map((s) => ({ id: s.id, title: s.title }))
+    );
+
+    // 첫 번째 예약 데이터의 구조 확인
+    if (allReservations.length > 0) {
+      console.log('예약 데이터 샘플:', {
+        id: allReservations[0].id,
+        seminar_id: allReservations[0].seminar_id,
+        student_name: allReservations[0].student_name,
+      });
+    }
+
+    // 설명회 필터링
+    if (!seminarId || seminarId === 'all' || seminarId === null) {
+      // 전체 선택시
+      window.filteredReservations = [...allReservations];
+      window.filteredTestApplications = [...allTestApplications];
+      window.filteredConsultingSlots = [...allConsultingSlots];
+      window.filteredConsultingReservations = [...allConsultingReservations];
+
+      console.log('전체 데이터 표시');
     } else {
-      // 설명회별 필터링
-      filteredReservations = allReservations.filter(
-        (r) => r.seminar_id === parseInt(selectedSeminar)
-      );
+      // 특정 설명회 선택시 - 문자열로 비교
+      console.log('선택된 설명회 ID (문자열):', seminarId);
 
-      // 진단검사는 예약 ID로 매칭
-      const reservationIds = filteredReservations.map((r) => r.id);
-      filteredTestApplications = allTestApplications.filter((t) =>
-        reservationIds.includes(t.reservation_id)
-      );
+      // 예약 데이터 필터링 - 문자열로 비교
+      window.filteredReservations = allReservations.filter((r) => {
+        // seminar_id 또는 seminars_id 체크 (테이블 구조가 다를 수 있음)
+        const rSeminarId = r.seminar_id || r.seminars_id || r.seminar;
 
-      // 컨설팅도 예약 기반 필터링
-      filteredConsultingSlots = allConsultingSlots.filter((slot) => {
-        if (
-          slot.consulting_reservations &&
-          slot.consulting_reservations.length > 0
-        ) {
-          return slot.consulting_reservations.some((cr) =>
-            reservationIds.includes(cr.reservation_id)
-          );
+        if (rSeminarId === undefined || rSeminarId === null) {
+          return false;
         }
+
+        // 문자열로 비교
+        return String(rSeminarId) === String(seminarId);
+      });
+
+      console.log(
+        `설명회 "${seminarId}" 필터링 결과:`,
+        window.filteredReservations.length,
+        '건'
+      );
+
+      if (window.filteredReservations.length === 0) {
+        console.warn('필터링된 예약이 없습니다. 데이터를 확인하세요.');
+      }
+
+      // 해당 설명회 예약자들의 ID와 전화번호 추출
+      const reservationIds = window.filteredReservations.map((r) => r.id);
+      const phoneNumbers = window.filteredReservations
+        .map((r) => r.parent_phone?.replace(/-/g, ''))
+        .filter((p) => p);
+      const studentNames = window.filteredReservations
+        .map((r) => r.student_name)
+        .filter((n) => n);
+
+      console.log('매칭 데이터:', {
+        IDs: reservationIds.length,
+        전화번호: phoneNumbers.length,
+        학생이름: studentNames.length,
+      });
+
+      // 진단검사는 reservation_id 또는 phone/name으로 필터링
+      window.filteredTestApplications = allTestApplications.filter((t) => {
+        // 1. reservation_id로 매칭
+        if (t.reservation_id && reservationIds.includes(t.reservation_id)) {
+          return true;
+        }
+
+        // 2. 전화번호로 매칭 (하이픈 제거하고 비교)
+        if (t.parent_phone) {
+          const cleanPhone = t.parent_phone.replace(/-/g, '');
+          if (phoneNumbers.includes(cleanPhone)) {
+            return true;
+          }
+        }
+
+        // 3. 학생 이름으로 매칭
+        if (t.student_name && studentNames.includes(t.student_name)) {
+          return true;
+        }
+
         return false;
       });
 
-      // 선택된 설명회 정보 저장
-      globalState.seminarInfo = allSeminars.find(
-        (s) => s.id === parseInt(selectedSeminar)
+      console.log(
+        '필터링된 진단검사:',
+        window.filteredTestApplications.length,
+        '건'
       );
+
+      // 컨설팅도 같은 방식으로 필터링
+      window.filteredConsultingReservations = allConsultingReservations.filter(
+        (c) => {
+          // 1. reservation_id로 매칭
+          if (c.reservation_id && reservationIds.includes(c.reservation_id)) {
+            return true;
+          }
+
+          // 2. 전화번호로 매칭
+          if (c.parent_phone) {
+            const cleanPhone = c.parent_phone.replace(/-/g, '');
+            if (phoneNumbers.includes(cleanPhone)) {
+              return true;
+            }
+          }
+
+          // 3. 학생 이름으로 매칭
+          if (c.student_name && studentNames.includes(c.student_name)) {
+            return true;
+          }
+
+          return false;
+        }
+      );
+
+      console.log(
+        '필터링된 컨설팅:',
+        window.filteredConsultingReservations.length,
+        '건'
+      );
+
+      // 컨설팅 슬롯은 전체 표시 (일정 관리용)
+      window.filteredConsultingSlots = [...allConsultingSlots];
     }
 
-    // 선택 배지 업데이트
+    // 선택된 설명회 정보 저장
+    if (seminarId && seminarId !== 'all') {
+      globalState.seminarInfo = allSeminars.find(
+        (s) => String(s.id) === String(seminarId)
+      );
+      console.log('선택된 설명회 정보:', globalState.seminarInfo);
+    } else {
+      globalState.seminarInfo = null;
+    }
+
+    // UI 업데이트
     this.updateSelectedBadge();
+    this.updateAllModules();
   },
 
   updateSelectedBadge() {
@@ -233,31 +395,74 @@ const MonitoringCore = {
       badge.textContent = '전체';
       badge.className = 'selected-badge';
     } else if (globalState.seminarInfo) {
-      const location =
-        globalState.seminarInfo.title.split('-').pop()?.trim() || '기타';
+      // 제목에서 위치 추출 - "아이스터디 VIP 학부모 설명회 - 대치" 형식
+      let location = '기타';
+
+      if (globalState.seminarInfo.title) {
+        const parts = globalState.seminarInfo.title.split('-');
+        if (parts.length > 1) {
+          location = parts[parts.length - 1].trim();
+        } else {
+          // 하이픈이 없으면 제목 전체를 짧게 표시
+          location = globalState.seminarInfo.title
+            .replace('VIP 학부모 설명회', '')
+            .trim();
+        }
+      }
+
       badge.textContent = location;
       badge.className = 'selected-badge active';
     }
   },
 
   updateAllModules() {
+    console.log('모든 모듈 업데이트 시작 - 현재 탭:', globalState.currentTab);
+
+    // 각 모듈이 정의되어 있는지 확인
+    if (!window.DashboardModule) {
+      console.error('DashboardModule이 정의되지 않음');
+      return;
+    }
+
     // 현재 탭에 따라 업데이트
     switch (globalState.currentTab) {
       case 'dashboard':
-        DashboardModule.update();
+        if (DashboardModule && DashboardModule.update) {
+          DashboardModule.update();
+        } else {
+          console.error('DashboardModule.update 함수 없음');
+        }
         break;
       case 'seminar':
-        SeminarModule.update();
+        if (SeminarModule && SeminarModule.update) {
+          SeminarModule.update();
+        } else {
+          console.error('SeminarModule.update 함수 없음');
+        }
         break;
       case 'checkin':
-        CheckinModule.update();
+        if (CheckinModule && CheckinModule.update) {
+          CheckinModule.update();
+        } else {
+          console.error('CheckinModule.update 함수 없음');
+        }
         break;
       case 'test':
-        TestModule.update();
+        if (TestModule && TestModule.update) {
+          TestModule.update();
+        } else {
+          console.error('TestModule.update 함수 없음');
+        }
         break;
       case 'consulting':
-        ConsultingModule.update();
+        if (ConsultingModule && ConsultingModule.update) {
+          ConsultingModule.update();
+        } else {
+          console.error('ConsultingModule.update 함수 없음');
+        }
         break;
+      default:
+        console.error('알 수 없는 탭:', globalState.currentTab);
     }
 
     // 연결 상태 업데이트
@@ -293,142 +498,82 @@ const MonitoringCore = {
     const seminarSelector = document.getElementById('globalSeminarFilter');
     if (seminarSelector) {
       seminarSelector.addEventListener('change', (e) => {
+        const selectedValue = e.target.value;
+        console.log('설명회 선택 변경:', selectedValue);
+
         globalState.selectedSeminar =
-          e.target.value === 'all' ? null : e.target.value;
+          selectedValue === 'all' ? null : selectedValue;
         this.applyGlobalFilter();
-        this.updateAllModules();
-        showToast('필터 적용됨', 'info');
       });
     }
+
+    // 탭 초기 설정
+    this.switchTab('dashboard');
   },
 
   setupEventListeners() {
-    // 새로고침 버튼
-    const refreshBtn = document.querySelector('.refresh-icon');
-    if (refreshBtn) {
-      refreshBtn.parentElement.addEventListener('click', () =>
-        this.refreshData()
-      );
-    }
+    // 탭 클릭 이벤트는 HTML onclick으로 처리됨
 
-    // 엑셀 다운로드 버튼
-    const exportBtn = document.querySelector('[onclick*="exportData"]');
-    if (exportBtn) {
-      exportBtn.addEventListener('click', () => this.exportData());
-    }
-  },
-
-  async refreshData() {
-    showToast('데이터 새로고침 중...', 'info');
-    await this.loadAllData();
-    showToast('새로고침 완료', 'success');
-  },
-
-  exportData() {
-    // 현재 필터링된 데이터를 CSV로 내보내기
-    const data = this.prepareExportData();
-    if (data.length === 0) {
-      showToast('내보낼 데이터가 없습니다', 'warning');
-      return;
-    }
-
-    const csv = this.convertToCSV(data);
-    const filename = `monitoring_${globalState.selectedSeminar || 'all'}_${
-      new Date().toISOString().split('T')[0]
-    }.csv`;
-    downloadCSV(csv, filename);
-    showToast('데이터 내보내기 완료', 'success');
-  },
-
-  prepareExportData() {
-    // 현재 탭에 따라 다른 데이터 준비
-    switch (globalState.currentTab) {
-      case 'seminar':
-        return filteredReservations.map((r) => ({
-          예약번호: r.reservation_id,
-          설명회: r.seminar_name,
-          학생명: r.student_name,
-          연락처: r.parent_phone,
-          학교: r.school,
-          학년: r.grade,
-          상태: r.status,
-          예약일시: r.registered_at,
-        }));
-      case 'test':
-        return filteredTestApplications.map((t) => ({
-          번호: t.id,
-          학생명: t.student_name,
-          학교: t.school,
-          학년: t.grade,
-          검사유형: t.test_type,
-          신청일시: t.created_at,
-        }));
-      default:
-        return filteredReservations;
-    }
-  },
-
-  convertToCSV(data) {
-    if (data.length === 0) return '';
-
-    const headers = Object.keys(data[0]);
-    const csvHeaders = headers.join(',');
-
-    const csvRows = data.map((row) =>
-      headers
-        .map((header) => {
-          const value = row[header] || '';
-          return `"${String(value).replace(/"/g, '""')}"`;
-        })
-        .join(',')
-    );
-
-    return '\uFEFF' + csvHeaders + '\n' + csvRows.join('\n');
+    // 키보드 단축키 (선택사항)
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case '1':
+            this.switchTab('dashboard');
+            break;
+          case '2':
+            this.switchTab('seminar');
+            break;
+          case '3':
+            this.switchTab('checkin');
+            break;
+          case '4':
+            this.switchTab('test');
+            break;
+          case '5':
+            this.switchTab('consulting');
+            break;
+          case 'r':
+            this.refreshData();
+            break;
+        }
+      }
+    });
   },
 
   setupRealtimeSubscriptions() {
-    // 기존 구독 정리
-    this.cleanupSubscriptions();
-
     // 예약 테이블 구독
     const reservationSub = supabase
       .channel('reservations-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'reservations' },
-        (payload) => {
-          console.log('예약 변경:', payload);
-          this.handleRealtimeUpdate('reservations', payload);
-        }
+        (payload) => this.handleRealtimeUpdate('reservations', payload)
       )
       .subscribe();
 
     // 진단검사 테이블 구독
     const testSub = supabase
-      .channel('test-changes')
+      .channel('test-applications-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'test_applications' },
-        (payload) => {
-          console.log('진단검사 변경:', payload);
-          this.handleRealtimeUpdate('test_applications', payload);
-        }
+        (payload) => this.handleRealtimeUpdate('test_applications', payload)
       )
       .subscribe();
 
-    // 컨설팅 테이블 구독
+    // 컨설팅 예약 구독
     const consultingSub = supabase
-      .channel('consulting-changes')
+      .channel('consulting-reservations-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'consulting_slots' },
-        (payload) => {
-          console.log('컨설팅 변경:', payload);
-          this.handleRealtimeUpdate('consulting_slots', payload);
-        }
+        { event: '*', schema: 'public', table: 'consulting_reservations' },
+        (payload) =>
+          this.handleRealtimeUpdate('consulting_reservations', payload)
       )
       .subscribe();
 
+    // 구독 저장
     globalState.realtimeSubscriptions = [
       reservationSub,
       testSub,
@@ -436,110 +581,72 @@ const MonitoringCore = {
     ];
   },
 
-  handleRealtimeUpdate(table, payload) {
-    const { eventType, new: newRecord, old: oldRecord } = payload;
+  async handleRealtimeUpdate(table, payload) {
+    console.log('실시간 업데이트:', table, payload.eventType);
 
-    switch (table) {
-      case 'reservations':
-        this.updateReservations(eventType, newRecord, oldRecord);
-        break;
-      case 'test_applications':
-        this.updateTestApplications(eventType, newRecord, oldRecord);
-        break;
-      case 'consulting_slots':
-        this.updateConsultingSlots(eventType, newRecord, oldRecord);
-        break;
-    }
-
-    // 필터 재적용 및 UI 업데이트
-    this.applyGlobalFilter();
-    this.updateAllModules();
+    // 데이터 재로드
+    await this.loadAllData();
 
     // 알림 표시
-    this.showRealtimeNotification(table, eventType);
-  },
-
-  updateReservations(eventType, newRecord, oldRecord) {
-    switch (eventType) {
-      case 'INSERT':
-        allReservations.unshift(newRecord);
-        break;
-      case 'UPDATE':
-        const index = allReservations.findIndex((r) => r.id === newRecord.id);
-        if (index !== -1) {
-          allReservations[index] = newRecord;
-        }
-        break;
-      case 'DELETE':
-        allReservations = allReservations.filter((r) => r.id !== oldRecord.id);
-        break;
-    }
-  },
-
-  updateTestApplications(eventType, newRecord, oldRecord) {
-    switch (eventType) {
-      case 'INSERT':
-        allTestApplications.unshift(newRecord);
-        break;
-      case 'UPDATE':
-        const index = allTestApplications.findIndex(
-          (t) => t.id === newRecord.id
-        );
-        if (index !== -1) {
-          allTestApplications[index] = newRecord;
-        }
-        break;
-      case 'DELETE':
-        allTestApplications = allTestApplications.filter(
-          (t) => t.id !== oldRecord.id
-        );
-        break;
-    }
-  },
-
-  updateConsultingSlots(eventType, newRecord, oldRecord) {
-    switch (eventType) {
-      case 'INSERT':
-        allConsultingSlots.push(newRecord);
-        break;
-      case 'UPDATE':
-        const index = allConsultingSlots.findIndex(
-          (c) => c.id === newRecord.id
-        );
-        if (index !== -1) {
-          allConsultingSlots[index] = newRecord;
-        }
-        break;
-      case 'DELETE':
-        allConsultingSlots = allConsultingSlots.filter(
-          (c) => c.id !== oldRecord.id
-        );
-        break;
-    }
-  },
-
-  showRealtimeNotification(table, eventType) {
     const messages = {
-      reservations: {
-        INSERT: '새 예약이 등록되었습니다',
-        UPDATE: '예약 정보가 업데이트되었습니다',
-        DELETE: '예약이 취소되었습니다',
-      },
-      test_applications: {
-        INSERT: '새 진단검사 신청이 있습니다',
-        UPDATE: '진단검사 정보가 업데이트되었습니다',
-        DELETE: '진단검사 신청이 취소되었습니다',
-      },
-      consulting_slots: {
-        INSERT: '새 컨설팅 슬롯이 추가되었습니다',
-        UPDATE: '컨설팅 정보가 업데이트되었습니다',
-        DELETE: '컨설팅 슬롯이 삭제되었습니다',
-      },
+      INSERT: '새로운 데이터가 추가되었습니다',
+      UPDATE: '데이터가 업데이트되었습니다',
+      DELETE: '데이터가 삭제되었습니다',
     };
 
     const message =
-      messages[table]?.[eventType] || '데이터가 업데이트되었습니다';
+      messages[payload.eventType] || '데이터가 업데이트되었습니다';
     showToast(message, 'info');
+  },
+
+  async refreshData() {
+    console.log('데이터 새로고침');
+    showToast('데이터를 새로고침합니다...', 'info');
+
+    await this.loadAllData();
+
+    showToast('새로고침 완료', 'success');
+  },
+
+  async exportData() {
+    try {
+      showToast('엑셀 파일 생성 중...', 'info');
+
+      // CSV 생성 (간단한 예시)
+      let csv = '설명회,학생명,학교,학년,연락처,상태,체크인,진단검사,컨설팅\n';
+
+      window.filteredReservations.forEach((r) => {
+        const testApp = window.filteredTestApplications.find(
+          (t) => t.reservation_id === r.id
+        );
+        const consultingApp = window.filteredConsultingReservations.find(
+          (c) => c.reservation_id === r.id
+        );
+
+        csv += `"${r.seminar_name || ''}","${r.student_name}","${r.school}","${
+          r.grade
+        }",`;
+        csv += `"${r.parent_phone}","${r.status}","${
+          r.attendance_checked_at ? '완료' : '-'
+        }",`;
+        csv += `"${testApp ? testApp.test_type : '-'}","${
+          consultingApp ? '예약' : '-'
+        }"\n`;
+      });
+
+      // 다운로드
+      const now = new Date();
+      const filename = `monitoring_${now.getFullYear()}${String(
+        now.getMonth() + 1
+      ).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}.csv`;
+
+      downloadCSV(csv, filename);
+
+      showToast('다운로드 완료', 'success');
+    } catch (error) {
+      console.error('Export 실패:', error);
+      showToast('다운로드 실패', 'error');
+    }
   },
 
   updateConnectionStatus(status) {
@@ -574,797 +681,7 @@ const MonitoringCore = {
   },
 };
 
-// ===== 대시보드 모듈 =====
-const DashboardModule = {
-  chart: null,
-
-  initialize() {
-    this.initializeChart();
-    this.update();
-  },
-
-  initializeChart() {
-    const ctx = document.getElementById('funnelChart')?.getContext('2d');
-    if (!ctx) return;
-
-    this.chart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['예약', '체크인', '진단검사', '컨설팅'],
-        datasets: [
-          {
-            label: '전환 퍼널',
-            data: [0, 0, 0, 0],
-            backgroundColor: [
-              'rgba(26, 115, 232, 0.8)',
-              'rgba(52, 168, 83, 0.8)',
-              'rgba(251, 188, 4, 0.8)',
-              'rgba(234, 67, 53, 0.8)',
-            ],
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          tooltip: {
-            callbacks: {
-              afterLabel: (context) => {
-                if (context.dataIndex > 0) {
-                  const previousValue =
-                    context.dataset.data[context.dataIndex - 1];
-                  const currentValue = context.parsed.y;
-                  const rate =
-                    previousValue > 0
-                      ? ((currentValue / previousValue) * 100).toFixed(1)
-                      : 0;
-                  return `전환율: ${rate}%`;
-                }
-                return '';
-              },
-            },
-          },
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              stepSize: 1,
-            },
-          },
-        },
-      },
-    });
-  },
-
-  update() {
-    const stats = this.calculateStats();
-    const conversionRates = this.calculateConversionRates(stats);
-
-    // 통계 카드 업데이트
-    this.updateStatCards(stats, conversionRates);
-
-    // 차트 업데이트
-    this.updateChart(stats);
-
-    // 최근 활동 업데이트
-    this.updateRecentActivities();
-  },
-
-  calculateStats() {
-    const totalReservations = filteredReservations.length;
-    const totalCheckins = filteredReservations.filter(
-      (r) => r.status === '참석' && r.attendance_checked_at
-    ).length;
-    const totalTests = filteredTestApplications.length;
-    const totalConsultings = filteredReservations.filter(
-      (r) => r.post_checkin_choice === 'consult'
-    ).length;
-
-    return {
-      totalReservations,
-      totalCheckins,
-      totalTests,
-      totalConsultings,
-    };
-  },
-
-  calculateConversionRates(stats) {
-    return {
-      reservationToCheckin:
-        stats.totalReservations > 0
-          ? ((stats.totalCheckins / stats.totalReservations) * 100).toFixed(1)
-          : 0,
-      checkinToTest:
-        stats.totalCheckins > 0
-          ? ((stats.totalTests / stats.totalCheckins) * 100).toFixed(1)
-          : 0,
-      checkinToConsulting:
-        stats.totalCheckins > 0
-          ? ((stats.totalConsultings / stats.totalCheckins) * 100).toFixed(1)
-          : 0,
-    };
-  },
-
-  updateStatCards(stats, rates) {
-    // 기본 통계
-    document.getElementById('stat-total-reservations').textContent =
-      stats.totalReservations;
-    document.getElementById('stat-total-checkins').textContent =
-      stats.totalCheckins;
-    document.getElementById('stat-total-tests').textContent = stats.totalTests;
-    document.getElementById('stat-total-consultings').textContent =
-      stats.totalConsultings;
-
-    // 전환율 표시 추가 (HTML에 요소가 있다면)
-    const checkinRate = document.getElementById('checkin-conversion-rate');
-    if (checkinRate) {
-      checkinRate.textContent = `${rates.reservationToCheckin}%`;
-    }
-  },
-
-  updateChart(stats) {
-    if (!this.chart) return;
-
-    this.chart.data.datasets[0].data = [
-      stats.totalReservations,
-      stats.totalCheckins,
-      stats.totalTests,
-      stats.totalConsultings,
-    ];
-    this.chart.update();
-  },
-
-  updateRecentActivities() {
-    const activityList = document.getElementById('activityList');
-    if (!activityList) return;
-
-    // 최근 활동 수집
-    const activities = [];
-
-    // 예약 활동
-    filteredReservations.slice(0, 5).forEach((r) => {
-      activities.push({
-        time: r.registered_at,
-        type: '예약',
-        message: `${r.student_name}님이 예약했습니다`,
-        icon: '📋',
-      });
-    });
-
-    // 체크인 활동
-    filteredReservations
-      .filter((r) => r.attendance_checked_at)
-      .slice(0, 5)
-      .forEach((r) => {
-        activities.push({
-          time: r.attendance_checked_at,
-          type: '체크인',
-          message: `${r.student_name}님이 체크인했습니다`,
-          icon: '✅',
-        });
-      });
-
-    // 진단검사 활동
-    filteredTestApplications.slice(0, 5).forEach((t) => {
-      activities.push({
-        time: t.created_at,
-        type: '진단검사',
-        message: `${t.student_name}님이 진단검사를 신청했습니다`,
-        icon: '📝',
-      });
-    });
-
-    // 시간순 정렬 및 최근 10개만
-    activities.sort((a, b) => new Date(b.time) - new Date(a.time));
-    const recentActivities = activities.slice(0, 10);
-
-    // HTML 렌더링
-    activityList.innerHTML = recentActivities
-      .map(
-        (activity) => `
-        <div class="activity-item">
-          <span class="activity-icon">${activity.icon}</span>
-          <span class="activity-time">${formatDateTime(activity.time)}</span>
-          <span class="activity-type badge badge-${this.getActivityBadgeType(
-            activity.type
-          )}">${activity.type}</span>
-          <span class="activity-message">${activity.message}</span>
-        </div>
-      `
-      )
-      .join('');
-  },
-
-  getActivityBadgeType(type) {
-    const types = {
-      예약: 'primary',
-      체크인: 'success',
-      진단검사: 'info',
-      컨설팅: 'warning',
-    };
-    return types[type] || 'secondary';
-  },
-};
-
-// ===== 설명회 예약 모듈 =====
-const SeminarModule = {
-  update() {
-    this.renderStats();
-    this.renderTable();
-    this.setupFilters();
-  },
-
-  renderStats() {
-    const seminarStats = {};
-
-    // 설명회별 통계 계산
-    filteredReservations.forEach((r) => {
-      const key = r.seminar_id || 'unknown';
-      if (!seminarStats[key]) {
-        seminarStats[key] = {
-          id: r.seminar_id,
-          name: r.seminar_name || '미지정',
-          total: 0,
-          attended: 0,
-          cancelled: 0,
-          pending: 0,
-        };
-      }
-
-      seminarStats[key].total++;
-      if (r.status === '참석') seminarStats[key].attended++;
-      if (r.status === '취소') seminarStats[key].cancelled++;
-      if (r.status === '예약') seminarStats[key].pending++;
-    });
-
-    // 통계 표시
-    const statsContainer = document.getElementById('seminarStats');
-    if (statsContainer) {
-      statsContainer.innerHTML = Object.values(seminarStats)
-        .map((stat) => {
-          const attendRate =
-            stat.total > 0
-              ? ((stat.attended / stat.total) * 100).toFixed(1)
-              : 0;
-
-          return `
-            <div class="seminar-stat-card">
-              <h4>${stat.name}</h4>
-              <div class="stat-row">
-                <span class="stat-item">
-                  <strong>전체:</strong> ${stat.total}
-                </span>
-                <span class="stat-item success">
-                  <strong>참석:</strong> ${stat.attended}
-                </span>
-                <span class="stat-item warning">
-                  <strong>대기:</strong> ${stat.pending}
-                </span>
-                <span class="stat-item danger">
-                  <strong>취소:</strong> ${stat.cancelled}
-                </span>
-              </div>
-              <div class="conversion-rate">
-                참석률: <strong>${attendRate}%</strong>
-              </div>
-            </div>
-          `;
-        })
-        .join('');
-    }
-  },
-
-  renderTable() {
-    const tbody = document.getElementById('seminarTableBody');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-
-    // 필터링
-    let data = [...filteredReservations];
-
-    const statusFilter = document.getElementById('seminarStatusFilter')?.value;
-    if (statusFilter) {
-      data = data.filter((r) => r.status === statusFilter);
-    }
-
-    const searchInput = document
-      .getElementById('seminarSearchInput')
-      ?.value?.toLowerCase();
-    if (searchInput) {
-      data = data.filter(
-        (r) =>
-          r.student_name?.toLowerCase().includes(searchInput) ||
-          r.parent_phone?.includes(searchInput) ||
-          r.school?.toLowerCase().includes(searchInput)
-      );
-    }
-
-    // 테이블 렌더링
-    data.forEach((item) => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${item.reservation_id || '-'}</td>
-        <td>${item.seminar_name || '-'}</td>
-        <td>${item.student_name}</td>
-        <td>${formatPhoneNumber(item.parent_phone)}</td>
-        <td>${item.school}</td>
-        <td>${item.grade}</td>
-        <td>${this.getStatusBadge(item.status)}</td>
-        <td>${formatDateTime(item.registered_at)}</td>
-        <td>
-          <button class="btn btn-sm btn-primary" onclick="editReservation(${
-            item.id
-          })">
-            수정
-          </button>
-        </td>
-      `;
-      tbody.appendChild(row);
-    });
-
-    // 빈 상태 처리
-    if (data.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="9" class="text-center">예약 데이터가 없습니다</td>
-        </tr>
-      `;
-    }
-  },
-
-  getStatusBadge(status) {
-    const badges = {
-      예약: '<span class="badge badge-primary">예약</span>',
-      참석: '<span class="badge badge-success">참석</span>',
-      취소: '<span class="badge badge-danger">취소</span>',
-    };
-    return badges[status] || '<span class="badge badge-secondary">-</span>';
-  },
-
-  setupFilters() {
-    const statusFilter = document.getElementById('seminarStatusFilter');
-    const searchInput = document.getElementById('seminarSearchInput');
-
-    if (statusFilter && !statusFilter.hasListener) {
-      statusFilter.addEventListener('change', () => this.renderTable());
-      statusFilter.hasListener = true;
-    }
-
-    if (searchInput && !searchInput.hasListener) {
-      searchInput.addEventListener('input', () => this.renderTable());
-      searchInput.hasListener = true;
-    }
-  },
-};
-
-// ===== 체크인 분석 모듈 =====
-const CheckinModule = {
-  update() {
-    this.calculateStats();
-    this.renderTable();
-  },
-
-  calculateStats() {
-    const checkedIn = filteredReservations.filter(
-      (r) => r.status === '참석' && r.attendance_checked_at
-    );
-
-    const stats = {
-      total: checkedIn.length,
-      test: checkedIn.filter((r) => r.post_checkin_choice === 'test').length,
-      consult: checkedIn.filter((r) => r.post_checkin_choice === 'consult')
-        .length,
-      pending: checkedIn.filter((r) => !r.post_checkin_choice).length,
-      online: checkedIn.filter((r) => r.checkin_type === 'online').length,
-      offline: checkedIn.filter((r) => r.checkin_type === 'offline').length,
-    };
-
-    // 전환율 계산
-    const testRate =
-      stats.total > 0 ? ((stats.test / stats.total) * 100).toFixed(1) : 0;
-    const consultRate =
-      stats.total > 0 ? ((stats.consult / stats.total) * 100).toFixed(1) : 0;
-
-    // UI 업데이트
-    document.getElementById('checkin-total').textContent = stats.total;
-    document.getElementById('checkin-test').textContent = stats.test;
-    document.getElementById('checkin-consult').textContent = stats.consult;
-    document.getElementById('checkin-pending').textContent = stats.pending;
-
-    // 전환율 표시
-    const testRateEl = document.getElementById('checkin-test-rate');
-    const consultRateEl = document.getElementById('checkin-consult-rate');
-
-    if (testRateEl) testRateEl.textContent = `${testRate}%`;
-    if (consultRateEl) consultRateEl.textContent = `${consultRate}%`;
-
-    return stats;
-  },
-
-  renderTable() {
-    const tbody = document.getElementById('checkinTableBody');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-
-    const checkedIn = filteredReservations
-      .filter((r) => r.status === '참석' && r.attendance_checked_at)
-      .sort(
-        (a, b) =>
-          new Date(b.attendance_checked_at) - new Date(a.attendance_checked_at)
-      );
-
-    checkedIn.forEach((item) => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${formatDateTime(item.attendance_checked_at)}</td>
-        <td>${item.student_name}</td>
-        <td>${item.seminar_name || '-'}</td>
-        <td>${item.checkin_type === 'offline' ? '현장' : '온라인'}</td>
-        <td>${this.getChoiceBadge(item.post_checkin_choice)}</td>
-        <td>${
-          item.post_checkin_at ? formatDateTime(item.post_checkin_at) : '-'
-        }</td>
-      `;
-      tbody.appendChild(row);
-    });
-
-    if (checkedIn.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="6" class="text-center">체크인 데이터가 없습니다</td>
-        </tr>
-      `;
-    }
-  },
-
-  getChoiceBadge(choice) {
-    const badges = {
-      test: '<span class="badge badge-info">진단검사</span>',
-      consult: '<span class="badge badge-success">컨설팅</span>',
-    };
-    return (
-      badges[choice] || '<span class="badge badge-secondary">미선택</span>'
-    );
-  },
-};
-
-// ===== 진단검사 모듈 =====
-const TestModule = {
-  update() {
-    this.renderTable();
-    this.updateStats();
-    this.setupFilters();
-  },
-
-  renderTable() {
-    const tbody = document.getElementById('testTableBody');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-
-    // 필터링
-    let data = [...filteredTestApplications];
-
-    const typeFilter = document.getElementById('testTypeFilter')?.value;
-    if (typeFilter) {
-      data = data.filter((item) => item.test_type === typeFilter);
-    }
-
-    const searchInput = document
-      .getElementById('testSearchInput')
-      ?.value?.toLowerCase();
-    if (searchInput) {
-      data = data.filter(
-        (item) =>
-          item.student_name?.toLowerCase().includes(searchInput) ||
-          item.school?.toLowerCase().includes(searchInput)
-      );
-    }
-
-    // 테이블 렌더링
-    data.forEach((item, index) => {
-      const row = document.createElement('tr');
-      const isDownloaded = item.downloaded_at && item.test_type;
-
-      row.innerHTML = `
-        <td>${index + 1}</td>
-        <td>${item.seminar_name || '-'}</td>
-        <td>${item.student_name}</td>
-        <td>${item.school}</td>
-        <td>${item.grade}</td>
-        <td>${item.math_level || '-'}</td>
-        <td>${this.getTestTypeBadge(item.test_type, item.hme_grade)}</td>
-        <td>${this.getDownloadStatus(item.downloaded_at)}</td>
-        <td>${formatDateTime(item.created_at)}</td>
-      `;
-      tbody.appendChild(row);
-    });
-
-    if (data.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="9" class="text-center">진단검사 신청 데이터가 없습니다</td>
-        </tr>
-      `;
-    }
-  },
-
-  getTestTypeBadge(type, hmeGrade) {
-    if (!type) {
-      return '<span class="badge badge-warning">미선택</span>';
-    }
-
-    let badge = `<span class="badge badge-primary">${type}</span>`;
-    if (hmeGrade) {
-      badge += ` <span class="badge badge-secondary">${hmeGrade}</span>`;
-    }
-    return badge;
-  },
-
-  getDownloadStatus(downloadedAt) {
-    if (downloadedAt) {
-      return `<span class="badge badge-success">✓ ${formatDateTime(
-        downloadedAt
-      )}</span>`;
-    }
-    return '<span class="badge badge-secondary">미완료</span>';
-  },
-
-  updateStats() {
-    const total = filteredTestApplications.length;
-    const hmeCount = filteredTestApplications.filter(
-      (d) => d.test_type === 'HME'
-    ).length;
-    const monoTriCount = filteredTestApplications.filter(
-      (d) => d.test_type === 'MONO' || d.test_type === 'TRI'
-    ).length;
-    const mockCount = filteredTestApplications.filter(
-      (d) => d.test_type === 'MOCK'
-    ).length;
-
-    document.getElementById('test-total').textContent = total;
-    document.getElementById('test-hme').textContent = hmeCount;
-    document.getElementById('test-mono-tri').textContent = monoTriCount;
-    document.getElementById('test-mock').textContent = mockCount;
-  },
-
-  setupFilters() {
-    const typeFilter = document.getElementById('testTypeFilter');
-    const searchInput = document.getElementById('testSearchInput');
-
-    if (typeFilter && !typeFilter.hasListener) {
-      typeFilter.addEventListener('change', () => this.renderTable());
-      typeFilter.hasListener = true;
-    }
-
-    if (searchInput && !searchInput.hasListener) {
-      searchInput.addEventListener('input', () => this.renderTable());
-      searchInput.hasListener = true;
-    }
-  },
-};
-
-// ===== 컨설팅 모듈 =====
-const ConsultingModule = {
-  currentView: 'calendar',
-
-  update() {
-    if (this.currentView === 'calendar') {
-      this.renderCalendar();
-    } else {
-      this.renderList();
-    }
-    this.updateStats();
-  },
-
-  switchView(view) {
-    this.currentView = view;
-
-    // 버튼 활성화 상태 변경
-    document.querySelectorAll('.view-btn').forEach((btn) => {
-      btn.classList.remove('active');
-    });
-
-    if (event && event.target) {
-      event.target.classList.add('active');
-    }
-
-    // 뷰 전환
-    const calendarView = document.getElementById('consultingCalendar');
-    const listView = document.getElementById('consultingList');
-
-    if (view === 'calendar') {
-      if (calendarView) calendarView.style.display = 'block';
-      if (listView) listView.style.display = 'none';
-      this.renderCalendar();
-    } else {
-      if (calendarView) calendarView.style.display = 'none';
-      if (listView) listView.style.display = 'block';
-      this.renderList();
-    }
-  },
-
-  renderCalendar() {
-    const calendar = document.getElementById('consultingCalendar');
-    if (!calendar) return;
-
-    // 간단한 캘린더 구현
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-
-    calendar.innerHTML = `
-      <div class="calendar-header">
-        <h3>${currentYear}년 ${currentMonth + 1}월</h3>
-      </div>
-      <div class="calendar-grid">
-        ${this.generateCalendarDays(currentYear, currentMonth)}
-      </div>
-    `;
-  },
-
-  generateCalendarDays(year, month) {
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    let html = '';
-    let dayCount = 1;
-
-    // 주 헤더
-    const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
-    weekDays.forEach((day) => {
-      html += `<div class="calendar-weekday">${day}</div>`;
-    });
-
-    // 빈 칸
-    for (let i = 0; i < firstDay; i++) {
-      html += '<div class="calendar-day empty"></div>';
-    }
-
-    // 날짜
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(
-        day
-      ).padStart(2, '0')}`;
-      const consultings = this.getConsultingsForDate(dateStr);
-
-      html += `
-        <div class="calendar-day ${consultings.length > 0 ? 'has-events' : ''}">
-          <div class="day-number">${day}</div>
-          ${
-            consultings.length > 0
-              ? `<div class="event-count">${consultings.length}건</div>`
-              : ''
-          }
-        </div>
-      `;
-    }
-
-    return html;
-  },
-
-  getConsultingsForDate(dateStr) {
-    return filteredConsultingSlots.filter((slot) => {
-      const slotDate = new Date(slot.date).toISOString().split('T')[0];
-      return slotDate === dateStr;
-    });
-  },
-
-  renderList() {
-    const tbody = document.getElementById('consultingTableBody');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-
-    const consultings = filteredReservations
-      .filter((r) => r.post_checkin_choice === 'consult')
-      .sort(
-        (a, b) => new Date(b.post_checkin_at) - new Date(a.post_checkin_at)
-      );
-
-    consultings.forEach((item) => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${item.consulting_date || '-'}</td>
-        <td>${item.consulting_time || '-'}</td>
-        <td>${item.student_name}</td>
-        <td>${item.school}</td>
-        <td>${item.grade}</td>
-        <td>${item.test_type || '-'}</td>
-        <td>${this.getConsultingStatus(item)}</td>
-        <td>
-          <button class="btn btn-sm btn-primary">일정변경</button>
-        </td>
-      `;
-      tbody.appendChild(row);
-    });
-
-    if (consultings.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="8" class="text-center">컨설팅 예약 데이터가 없습니다</td>
-        </tr>
-      `;
-    }
-  },
-
-  getConsultingStatus(item) {
-    if (item.consulting_completed) {
-      return '<span class="badge badge-success">완료</span>';
-    }
-    return '<span class="badge badge-warning">대기</span>';
-  },
-
-  updateStats() {
-    const today = new Date().toDateString();
-    const thisWeek = new Date();
-    thisWeek.setDate(thisWeek.getDate() - 7);
-
-    const consultings = filteredReservations.filter(
-      (r) => r.post_checkin_choice === 'consult'
-    );
-
-    const todayCount = consultings.filter((c) => {
-      const date = new Date(c.post_checkin_at);
-      return date.toDateString() === today;
-    }).length;
-
-    const weekCount = consultings.filter((c) => {
-      const date = new Date(c.post_checkin_at);
-      return date >= thisWeek;
-    }).length;
-
-    const pendingCount = consultings.filter(
-      (c) => !c.consulting_completed
-    ).length;
-
-    document.getElementById('consulting-today').textContent = todayCount;
-    document.getElementById('consulting-week').textContent = weekCount;
-    document.getElementById('consulting-pending').textContent = pendingCount;
-  },
-};
-
 // ===== 유틸리티 함수 =====
-function formatDateTime(dateString) {
-  if (!dateString) return '-';
-
-  const date = new Date(dateString);
-
-  // KST 변환
-  const kstOffset = 9 * 60 * 60 * 1000;
-  const kstDate = new Date(date.getTime() + kstOffset);
-
-  return kstDate.toLocaleString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function formatDateShort(dateString) {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  return `${date.getMonth() + 1}/${date.getDate()}`;
-}
-
-function formatPhoneNumber(phone) {
-  if (!phone) return '-';
-  const cleaned = phone.replace(/[^0-9]/g, '');
-  if (cleaned.length === 11) {
-    return `${cleaned.substring(0, 3)}-${cleaned.substring(
-      3,
-      7
-    )}-${cleaned.substring(7, 11)}`;
-  }
-  return phone;
-}
-
 function showLoading(show) {
   const overlay = document.getElementById('loadingOverlay');
   if (overlay) {
@@ -1403,8 +720,43 @@ function showToast(message, type = 'info') {
   }, 3000);
 }
 
+function formatDateTime(dateString) {
+  if (!dateString) return '-';
+
+  const date = new Date(dateString);
+  const kstOffset = 9 * 60 * 60 * 1000;
+  const kstDate = new Date(date.getTime() + kstOffset);
+
+  return kstDate.toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatDateShort(dateString) {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function formatPhoneNumber(phone) {
+  if (!phone) return '-';
+  const cleaned = phone.replace(/[^0-9]/g, '');
+  if (cleaned.length === 11) {
+    return `${cleaned.substring(0, 3)}-${cleaned.substring(
+      3,
+      7
+    )}-${cleaned.substring(7, 11)}`;
+  }
+  return phone;
+}
+
 function downloadCSV(csv, filename) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const BOM = '\uFEFF';
+  const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
   link.download = filename;
@@ -1418,20 +770,13 @@ function closeModal() {
   }
 }
 
-function editReservation(id) {
-  // 예약 수정 모달 열기
-  showToast(`예약 ID ${id} 수정 기능 구현 예정`, 'info');
-}
-
 // 전역 노출
 window.MonitoringCore = MonitoringCore;
-window.DashboardModule = DashboardModule;
-window.SeminarModule = SeminarModule;
-window.CheckinModule = CheckinModule;
-window.TestModule = TestModule;
-window.ConsultingModule = ConsultingModule;
+window.showToast = showToast;
+window.formatDateTime = formatDateTime;
+window.formatDateShort = formatDateShort;
+window.formatPhoneNumber = formatPhoneNumber;
 window.closeModal = closeModal;
-window.editReservation = editReservation;
 
 // 페이지 언로드 시 정리
 window.addEventListener('beforeunload', () => {
