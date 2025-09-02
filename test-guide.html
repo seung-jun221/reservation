@@ -942,11 +942,12 @@
         return phone;
       }
 
+      // 기존 신청자 확인 시 test_applications도 체크
+
       async function verifyUser() {
         const phone = document.getElementById('phoneInput').value;
         const cleanPhone = phone.replace(/\D/g, '');
 
-        // 하이픈 포함 형식으로 변환
         let formattedPhone;
         if (cleanPhone.length === 11) {
           formattedPhone = `${cleanPhone.slice(0, 3)}-${cleanPhone.slice(
@@ -966,37 +967,94 @@
         showLoading();
 
         try {
-          // 1. 진단검사 신청자 확인 (이 경우만 통과)
-          const { data: testApplicant, error: testError } = await supabase
-            .from('reservations')
+          // 1. 기존 다운로드 이력 확인
+          const { data: existingTest, error: testError } = await supabase
+            .from('test_applications')
             .select('*')
             .eq('parent_phone', formattedPhone)
-            .eq('status', '참석')
-            .eq('post_checkin_choice', 'test')
-            .order('id', { ascending: false })
+            .order('created_at', { ascending: false })
             .limit(1);
+
+          if (existingTest && existingTest.length > 0) {
+            // 이미 다운로드한 이력이 있음
+            hideLoading();
+            const testInfo = existingTest[0];
+            const downloadDate = new Date(
+              testInfo.downloaded_at
+            ).toLocaleDateString('ko-KR');
+
+            if (
+              confirm(
+                `📌 이미 진단검사를 다운로드하신 이력이 있습니다.\n\n` +
+                  `학생명: ${testInfo.student_name}\n` +
+                  `다운로드 날짜: ${downloadDate}\n` +
+                  `검사 유형: ${testInfo.test_type}${
+                    testInfo.hme_grade ? ` (${testInfo.hme_grade})` : ''
+                  }\n\n` +
+                  `다시 다운로드하시겠습니까?`
+              )
+            ) {
+              // 기존 정보로 진행
+              currentUser = {
+                student_name: testInfo.student_name,
+                parent_phone: testInfo.parent_phone,
+                school: testInfo.school,
+                grade: testInfo.grade,
+                math_level: testInfo.math_level,
+              };
+              showInfoConfirm();
+            }
+            return;
+          }
+
+          // 2. 설명회 체크인 후 진단검사 선택자 확인
+          const { data: testApplicant, error: reservationError } =
+            await supabase
+              .from('reservations')
+              .select('*')
+              .eq('parent_phone', formattedPhone)
+              .eq('status', '참석')
+              .eq('post_checkin_choice', 'test')
+              .order('id', { ascending: false })
+              .limit(1);
 
           console.log('진단검사 신청자 조회 결과:', testApplicant);
 
+          // ⭐ 디버깅: 실제 필드 확인
           if (testApplicant && testApplicant.length > 0) {
-            // 진단검사 신청자만 정보 확인 화면으로
+            console.log('=== reservations 테이블 필드 확인 ===');
+            console.log('전체 데이터:', testApplicant[0]);
+            console.log('student_name:', testApplicant[0].student_name);
+            console.log('name:', testApplicant[0].name);
+            console.log('reservation_id:', testApplicant[0].reservation_id);
+
+            // ⭐ 필드명 자동 감지 및 매핑
+            const record = testApplicant[0];
+            const studentName =
+              record.student_name ||
+              record.name ||
+              record.reservation_id ||
+              '미입력';
+
             currentUser = {
-              student_name: testApplicant[0].student_name,
-              parent_phone: testApplicant[0].parent_phone,
-              school: testApplicant[0].school,
-              grade: testApplicant[0].grade,
-              math_level: testApplicant[0].math_level,
+              student_name: studentName, // 유연한 필드 매핑
+              parent_phone: record.parent_phone,
+              school: record.school || '미입력',
+              grade: record.grade || '미입력',
+              math_level: record.math_level || '미입력',
             };
+
+            console.log('생성된 currentUser:', currentUser);
             hideLoading();
             showInfoConfirm();
             return;
           }
 
-          // 2. 그 외 모든 경우 (체크인만, 예약만, 미등록 등)
-          // 간단히 신규 신청 안내만
+          // 3. 그 외 모든 경우 - 신규 신청 안내
           hideLoading();
           alert(
-            '진단검사 신청 내역이 없습니다.\n\n화면 하단의 [신규 신청하기]를 통해 진행해주세요.'
+            '진단검사 신청 내역이 없습니다.\n\n' +
+              '화면 하단의 [신규 신청하기]를 통해 진행해주세요.'
           );
         } catch (error) {
           console.error('Error:', error);
@@ -1221,24 +1279,147 @@
       // 다운로드 기록
       async function recordDownload() {
         try {
-          // TODO: 실제 Supabase 기록으로 변경
-          const record = {
-            ...currentUser,
-            test_type: selectedTest,
-            hme_grade: selectedHMEGrade,
-            downloaded_at: new Date().toISOString(),
-          };
+          console.log('=== 다운로드 기록 시작 ===');
 
-          console.log('Download recorded:', record);
+          // currentUser 검증 및 필드 매핑
+          if (!currentUser) {
+            alert('시험지 다운로드가 완료되었습니다.');
+            return;
+          }
 
-          // 다운로드 알림
+          // 필드명 수정
+          if (!currentUser.student_name) {
+            if (currentUser.reservation_id) {
+              currentUser.student_name = currentUser.reservation_id;
+              delete currentUser.reservation_id;
+            } else if (currentUser.name) {
+              currentUser.student_name = currentUser.name;
+              delete currentUser.name;
+            }
+          }
+
+          // ⭐ 기존 레코드 확인
+          const { data: existing } = await supabase
+            .from('test_applications')
+            .select('*')
+            .eq('parent_phone', currentUser.parent_phone)
+            .is('downloaded_at', null)
+            .single();
+
+          // ⭐ 한국 시간 계산
+          const kstOffset = 9 * 60 * 60 * 1000;
+          const kstTime = new Date(Date.now() + kstOffset);
+          const downloadTime = kstTime.toISOString().replace('Z', '+09:00');
+
+          if (existing) {
+            // 기존 레코드 UPDATE (체크인 시 이미 생성된 경우)
+            const { data, error } = await supabase
+              .from('test_applications')
+              .update({
+                test_type: selectedTest,
+                downloaded_at: downloadTime,
+                hme_grade: selectedTest === 'HME' ? selectedHMEGrade : null,
+              })
+              .eq('id', existing.id)
+              .select();
+
+            if (error) throw error;
+            console.log('✅ 다운로드 시간 업데이트 완료');
+          } else {
+            // 신규 INSERT (체크인 없이 바로 다운로드)
+            const testData = {
+              student_name: currentUser.student_name,
+              parent_phone: currentUser.parent_phone,
+              school: currentUser.school || '미입력',
+              grade: currentUser.grade || '미입력',
+              math_level: currentUser.math_level || '미입력',
+              test_type: selectedTest,
+              downloaded_at: downloadTime,
+            };
+
+            if (selectedTest === 'HME' && selectedHMEGrade) {
+              testData.hme_grade = selectedHMEGrade;
+            }
+
+            const { data, error } = await supabase
+              .from('test_applications')
+              .insert([testData])
+              .select();
+
+            if (error) throw error;
+            console.log('✅ 신규 기록 저장 완료');
+          }
+
+          // 성공 알림
           setTimeout(() => {
             alert(
-              '시험지 다운로드가 완료되었습니다.\n\n컨설팅 예약 링크는 추후 문자로 발송됩니다.'
+              '✅ 시험지 다운로드가 완료되었습니다!\n\n' +
+                `📝 검사 유형: ${selectedTest}${
+                  selectedHMEGrade ? ` (${selectedHMEGrade})` : ''
+                }\n` +
+                `👤 학생명: ${currentUser.student_name}\n` +
+                `🏫 학교: ${currentUser.school} ${currentUser.grade}\n\n` +
+                '📧 컨설팅 예약 링크는 추후 문자로 발송됩니다.'
             );
-          }, 1000);
+          }, 500);
         } catch (error) {
-          console.error('Error recording download:', error);
+          console.error('❌ 오류:', error);
+          alert('오류가 발생했습니다. 관리자에게 문의해주세요.');
+        }
+      }
+      // reservations 테이블 업데이트 헬퍼 함수 (대체 수단으로만 사용)
+      async function updateReservationRecord(isFailback = false) {
+        if (!isFailback) {
+          console.log('📌 test_applications 성공 - reservations 업데이트 스킵');
+          return;
+        }
+
+        try {
+          const phone = currentUser.parent_phone;
+          // 기존 데이터 먼저 조회 (memo 보존을 위해)
+          const { data: reservations } = await supabase
+            .from('reservations')
+            .select('id, memo, notes') // 기존 memo, notes 가져오기
+            .or(
+              `parent_phone.eq.${phone},parent_phone.eq.${phone.replace(
+                /-/g,
+                ''
+              )}`
+            )
+            .eq('post_checkin_choice', 'test')
+            .order('id', { ascending: false })
+            .limit(1);
+
+          if (reservations && reservations.length > 0) {
+            const reservation = reservations[0];
+            const downloadInfo = `${selectedTest}${
+              selectedHMEGrade ? `-${selectedHMEGrade}` : ''
+            } / ${new Date().toLocaleString('ko-KR')}`;
+
+            // 기존 메모가 있으면 추가, 없으면 새로 작성
+            const updatedMemo = reservation.memo
+              ? `${reservation.memo} | 진단검사: ${selectedTest}`
+              : `진단검사: ${selectedTest}`;
+
+            // notes도 기존 내용에 추가
+            const updatedNotes = reservation.notes
+              ? `${reservation.notes}\n진단검사 다운로드: ${downloadInfo}`
+              : `진단검사 다운로드: ${downloadInfo}`;
+
+            const { error } = await supabase
+              .from('reservations')
+              .update({
+                memo: updatedMemo,
+                notes: updatedNotes,
+              })
+              .eq('id', reservation.id);
+
+            if (!error) {
+              console.log('✅ reservations 테이블 업데이트 완료 (대체 기록)');
+            }
+          }
+        } catch (e) {
+          console.log('reservations 업데이트 실패:', e);
         }
       }
 

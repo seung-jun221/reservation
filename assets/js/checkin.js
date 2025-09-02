@@ -455,14 +455,16 @@ function showCompleteStep() {
 }
 
 // ===== 진단검사 선택 =====
+// ===== 진단검사 선택 =====
+// ===== 진단검사 선택 (수정된 버전) =====
 async function selectTest() {
   if (!selectedReservation) return;
 
   showLoading('처리 중...');
 
   try {
-    // 선택 저장
-    const { error } = await supabase
+    // 1. reservations 테이블 업데이트
+    const { error: updateError } = await supabase
       .from('reservations')
       .update({
         post_checkin_choice: 'test',
@@ -470,7 +472,43 @@ async function selectTest() {
       })
       .eq('id', selectedReservation.id);
 
-    if (error) throw error;
+    if (updateError) throw updateError;
+
+    // 2. ⭐ test_applications에 신청 기록 생성 (신규 추가)
+    // 이미 존재하는지 먼저 확인
+    const { data: existingApp } = await supabase
+      .from('test_applications')
+      .select('*')
+      .eq('parent_phone', selectedReservation.parent_phone)
+      .is('downloaded_at', null)
+      .single();
+
+    if (!existingApp) {
+      // 없으면 새로 생성
+      const applicationData = {
+        student_name: selectedReservation.student_name,
+        parent_phone: selectedReservation.parent_phone,
+        school: selectedReservation.school,
+        grade: selectedReservation.grade,
+        math_level: selectedReservation.math_level || '미입력',
+        test_type: null, // 아직 선택 안 함
+        downloaded_at: null, // 아직 다운로드 안 함
+        // created_at은 DB에서 자동 생성 (신청 시간)
+      };
+
+      const { error: insertError } = await supabase
+        .from('test_applications')
+        .insert([applicationData]);
+
+      if (insertError) {
+        console.error('test_applications 생성 실패:', insertError);
+        // 실패해도 계속 진행 (중요하지 않음)
+      } else {
+        console.log('✅ test_applications 레코드 생성 완료');
+      }
+    } else {
+      console.log('이미 test_applications 레코드가 존재합니다');
+    }
 
     hideLoading();
 
@@ -488,7 +526,6 @@ async function selectTest() {
     showToast('처리 중 오류가 발생했습니다.', 'error');
   }
 }
-
 // ===== 상담 선택 =====
 async function selectConsult() {
   if (!selectedReservation) return;
