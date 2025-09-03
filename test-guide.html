@@ -1108,10 +1108,12 @@
 
         const data = {
           student_name: document.getElementById('newName').value.trim(),
-          parent_phone: formattedPhone, // 하이픈 포함 형식으로 저장
+          parent_phone: formattedPhone,
           school: document.getElementById('newSchool').value.trim(),
           grade: document.getElementById('newGrade').value,
           math_level: document.getElementById('newMathLevel').value.trim(),
+          test_type: null, // 아직 검사 유형 미선택
+          downloaded_at: null, // 아직 다운로드 전
         };
 
         if (
@@ -1128,25 +1130,26 @@
         showLoading();
 
         try {
-          // TODO: 실제 Supabase 저장으로 변경
-          // const { data: savedData, error } = await supabase
-          //     .from('test_applications')
-          //     .insert([data])
-          //     .single();
+          // ✅ 실제 Supabase 저장 코드 활성화
+          const { data: savedData, error } = await supabase
+            .from('test_applications')
+            .insert([data])
+            .select()
+            .single();
 
-          // 임시로 localStorage에 저장
-          localStorage.setItem(
-            `user_${data.parent_phone}`,
-            JSON.stringify(data)
-          );
-          currentUser = data;
+          if (error) throw error;
+
+          // 성공 시 currentUser 설정
+          currentUser = savedData || data;
+
+          console.log('✅ test_applications 테이블에 저장 완료:', savedData);
 
           hideLoading();
           showInfoConfirm();
         } catch (error) {
           console.error('Error:', error);
           hideLoading();
-          alert('신청 처리 중 오류가 발생했습니다.');
+          alert('신청 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
         }
       }
 
