@@ -565,6 +565,18 @@
           id="newApplicationForm"
           onsubmit="event.preventDefault(); submitNewApplication();"
         >
+          <!-- 신규 신청 폼(newForm)의 학생명 입력 필드 위에 추가 -->
+          <div class="form-group">
+            <label>참석하신 설명회 <span style="color: red">*</span></label>
+            <select id="newSeminar" required>
+              <option value="">설명회를 선택해주세요</option>
+              <!-- 동적으로 로드됨 -->
+            </select>
+            <p style="font-size: 13px; color: #666; margin-top: 5px">
+              정확한 분석을 위해 필요합니다
+            </p>
+          </div>
+
           <div class="form-group">
             <label>학생명</label>
             <input type="text" id="newName" required />
@@ -902,6 +914,96 @@
         </div>
       </div>
 
+      <!-- STEP 3 다운로드 페이지 다음에 추가 (</div> 닫기 전) -->
+      <!-- 컨설팅 전환 화면 -->
+      <div id="consultingTransition" class="card hidden">
+        <h1>수학의 아침 X i.study [수리탐구]</h1>
+        <div style="text-align: center; padding: 40px 20px">
+          <div style="font-size: 64px; margin-bottom: 20px">✅</div>
+          <h2
+            style="
+              font-size: 22px;
+              font-weight: 700;
+              color: #333;
+              margin-bottom: 10px;
+            "
+          >
+            진단검사 다운로드 완료!
+          </h2>
+          <p
+            style="
+              font-size: 15px;
+              color: #666;
+              margin-bottom: 30px;
+              line-height: 1.6;
+            "
+          >
+            수고하셨습니다!<br />
+            진단검사 완료 후 전문 컨설팅을 통해<br />
+            맞춤형 학습 로드맵을 제공받으세요.
+          </p>
+
+          <div class="info-box" style="text-align: left; margin: 30px 0">
+            <h4 style="margin-bottom: 15px; color: #333">
+              💬 1:1 개별 컨설팅 안내
+            </h4>
+            <div style="margin-bottom: 10px">
+              <span style="color: #4caf50; margin-right: 10px">✓</span>
+              <span>진단검사 결과 상세 분석</span>
+            </div>
+            <div style="margin-bottom: 10px">
+              <span style="color: #4caf50; margin-right: 10px">✓</span>
+              <span>개인별 맞춤 커리큘럼 설계</span>
+            </div>
+            <div style="margin-bottom: 10px">
+              <span style="color: #4caf50; margin-right: 10px">✓</span>
+              <span>학습 목표 및 로드맵 제시</span>
+            </div>
+            <div>
+              <span style="color: #4caf50; margin-right: 10px">✓</span>
+              <span>학부모 상담 (20-30분)</span>
+            </div>
+          </div>
+
+          <div
+            class="btn-group"
+            style="display: flex; gap: 10px; justify-content: center"
+          >
+            <button
+              class="btn btn-primary"
+              onclick="goToConsulting()"
+              style="max-width: 200px"
+            >
+              지금 바로 예약하기
+            </button>
+            <button
+              class="btn btn-secondary"
+              onclick="skipConsulting()"
+              style="max-width: 200px"
+            >
+              나중에 예약하기
+            </button>
+          </div>
+
+          <div
+            style="
+              display: inline-block;
+              padding: 8px 16px;
+              background: #f0f0f0;
+              border-radius: 20px;
+              font-size: 14px;
+              color: #666;
+              margin-top: 20px;
+            "
+          >
+            자동으로 이동합니다...
+            <strong id="countdownNumber" style="color: #1a73e8; font-size: 16px"
+              >5</strong
+            >초
+          </div>
+        </div>
+      </div>
+
       <!-- 로딩 -->
       <div id="loading" class="card hidden">
         <div class="loading">
@@ -930,6 +1032,64 @@
       let currentUser = null;
       let selectedTest = null;
       let selectedHMEGrade = null;
+      let selectedSeminar = null;
+      let countdownTimer = null;
+
+      // window.onload 추가 또는 수정
+      window.onload = async function () {
+        await loadSeminars();
+
+        // URL 파라미터 확인
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('seminar')) {
+          selectedSeminar = params.get('seminar');
+        }
+      };
+
+      // 설명회 목록 로드 함수 추가
+      async function loadSeminars() {
+        try {
+          const today = new Date();
+          const sevenDaysAgo = new Date(
+            today.getTime() - 7 * 24 * 60 * 60 * 1000
+          );
+
+          const { data, error } = await supabase
+            .from('seminars')
+            .select('*')
+            .gte('date', sevenDaysAgo.toISOString().split('T')[0])
+            .lte('date', today.toISOString().split('T')[0])
+            .order('date', { ascending: false });
+
+          if (error) throw error;
+
+          const seminars = data || [];
+
+          // 신규 신청 폼에 설명회 옵션 추가
+          const select = document.getElementById('newSeminar');
+          if (select) {
+            seminars.forEach((seminar) => {
+              const option = document.createElement('option');
+              option.value = seminar.id;
+              const date = new Date(seminar.date);
+              const dateStr = `${date.getMonth() + 1}월 ${date.getDate()}일`;
+              const timeStr = seminar.time ? ` ${seminar.time}` : '';
+              option.textContent = `${dateStr}${timeStr} - ${
+                seminar.location || seminar.title
+              } 설명회`;
+
+              // URL 파라미터로 넘어온 설명회 자동 선택
+              if (selectedSeminar && seminar.id === selectedSeminar) {
+                option.selected = true;
+              }
+
+              select.appendChild(option);
+            });
+          }
+        } catch (error) {
+          console.error('설명회 로드 실패:', error);
+        }
+      }
 
       // 전화번호 포맷
       function formatPhone(phone) {
@@ -1089,11 +1249,13 @@
       }
 
       // 신규 신청 제출
+      // 기존 submitNewApplication 함수를 다음으로 완전 교체
       async function submitNewApplication() {
         const phone = document.getElementById('newPhone').value;
         const cleanPhone = phone.replace(/\D/g, '');
+        const seminarId = document.getElementById('newSeminar').value; // 추가
 
-        // 하이픈 포함 형식으로 저장
+        // 하이픈 포함 형식으로 저장 (기존 로직 유지)
         let formattedPhone;
         if (cleanPhone.length === 11) {
           formattedPhone = `${cleanPhone.slice(0, 3)}-${cleanPhone.slice(
@@ -1112,10 +1274,12 @@
           school: document.getElementById('newSchool').value.trim(),
           grade: document.getElementById('newGrade').value,
           math_level: document.getElementById('newMathLevel').value.trim(),
-          test_type: null, // 아직 검사 유형 미선택
-          downloaded_at: null, // 아직 다운로드 전
+          seminar_id: seminarId, // 추가
+          test_type: null,
+          downloaded_at: null,
         };
 
+        // 필수 항목 검증 (기존 로직 유지)
         if (
           !data.student_name ||
           !data.parent_phone ||
@@ -1127,10 +1291,18 @@
           return;
         }
 
+        // 설명회 선택 검증 (추가)
+        if (!seminarId) {
+          alert('참석하신 설명회를 선택해주세요.');
+          return;
+        }
+
+        selectedSeminar = seminarId; // 전역 변수에 저장 (추가)
+
         showLoading();
 
         try {
-          // ✅ 실제 Supabase 저장 코드 활성화
+          // ✅ 실제 Supabase 저장 코드 (기존 로직 유지)
           const { data: savedData, error } = await supabase
             .from('test_applications')
             .insert([data])
@@ -1139,7 +1311,7 @@
 
           if (error) throw error;
 
-          // 성공 시 currentUser 설정
+          // 성공 시 currentUser 설정 (기존 로직 유지)
           currentUser = savedData || data;
 
           console.log('✅ test_applications 테이블에 저장 완료:', savedData);
@@ -1315,21 +1487,28 @@
           const downloadTime = kstTime.toISOString().replace('Z', '+09:00');
 
           if (existing) {
-            // 기존 레코드 UPDATE (체크인 시 이미 생성된 경우)
+            // 기존 레코드 UPDATE
+            const updateData = {
+              test_type: selectedTest,
+              downloaded_at: downloadTime,
+              seminar_id: currentUser.seminar_id || selectedSeminar,
+            };
+
+            // HME인 경우에만 hme_grade 추가
+            if (selectedTest === 'HME' && selectedHMEGrade) {
+              updateData.hme_grade = selectedHMEGrade;
+            }
+
             const { data, error } = await supabase
               .from('test_applications')
-              .update({
-                test_type: selectedTest,
-                downloaded_at: downloadTime,
-                hme_grade: selectedTest === 'HME' ? selectedHMEGrade : null,
-              })
+              .update(updateData)
               .eq('id', existing.id)
               .select();
 
             if (error) throw error;
             console.log('✅ 다운로드 시간 업데이트 완료');
           } else {
-            // 신규 INSERT (체크인 없이 바로 다운로드)
+            // 신규 INSERT
             const testData = {
               student_name: currentUser.student_name,
               parent_phone: currentUser.parent_phone,
@@ -1338,6 +1517,7 @@
               math_level: currentUser.math_level || '미입력',
               test_type: selectedTest,
               downloaded_at: downloadTime,
+              seminar_id: currentUser.seminar_id || selectedSeminar,
             };
 
             if (selectedTest === 'HME' && selectedHMEGrade) {
@@ -1353,24 +1533,32 @@
             console.log('✅ 신규 기록 저장 완료');
           }
 
-          // 성공 알림
+          // 세션 스토리지에 저장
+          sessionStorage.setItem(
+            'testUser',
+            JSON.stringify({
+              ...currentUser,
+              test_type: selectedTest,
+              hme_grade: selectedHMEGrade,
+              downloaded_at: new Date().toISOString(),
+            })
+          );
+
+          // ===== alert 대신 컨설팅 전환 화면 표시 =====
           setTimeout(() => {
-            alert(
-              '✅ 시험지 다운로드가 완료되었습니다!\n\n' +
-                `📝 검사 유형: ${selectedTest}${
-                  selectedHMEGrade ? ` (${selectedHMEGrade})` : ''
-                }\n` +
-                `👤 학생명: ${currentUser.student_name}\n` +
-                `🏫 학교: ${currentUser.school} ${currentUser.grade}\n\n` +
-                '📧 컨설팅 예약 링크는 추후 문자로 발송됩니다.'
-            );
-          }, 500);
+            showConsultingTransition();
+          }, 1000);
         } catch (error) {
           console.error('❌ 오류:', error);
-          alert('오류가 발생했습니다. 관리자에게 문의해주세요.');
+          // 실패해도 전환 화면 표시
+          await updateReservationRecord(true);
+          setTimeout(() => {
+            showConsultingTransition();
+          }, 1000);
         }
       }
-      // reservations 테이블 업데이트 헬퍼 함수 (대체 수단으로만 사용)
+
+      // reservations 테이블 업데이트 헬퍼 함수 (기존 코드 그대로 유지)
       async function updateReservationRecord(isFailback = false) {
         if (!isFailback) {
           console.log('📌 test_applications 성공 - reservations 업데이트 스킵');
@@ -1382,7 +1570,7 @@
           // 기존 데이터 먼저 조회 (memo 보존을 위해)
           const { data: reservations } = await supabase
             .from('reservations')
-            .select('id, memo, notes') // 기존 memo, notes 가져오기
+            .select('id, memo, notes')
             .or(
               `parent_phone.eq.${phone},parent_phone.eq.${phone.replace(
                 /-/g,
@@ -1399,12 +1587,10 @@
               selectedHMEGrade ? `-${selectedHMEGrade}` : ''
             } / ${new Date().toLocaleString('ko-KR')}`;
 
-            // 기존 메모가 있으면 추가, 없으면 새로 작성
             const updatedMemo = reservation.memo
               ? `${reservation.memo} | 진단검사: ${selectedTest}`
               : `진단검사: ${selectedTest}`;
 
-            // notes도 기존 내용에 추가
             const updatedNotes = reservation.notes
               ? `${reservation.notes}\n진단검사 다운로드: ${downloadInfo}`
               : `진단검사 다운로드: ${downloadInfo}`;
@@ -1424,6 +1610,67 @@
         } catch (e) {
           console.log('reservations 업데이트 실패:', e);
         }
+      }
+
+      // 컨설팅 전환 화면 표시 함수 추가
+      function showConsultingTransition() {
+        // 모든 카드 숨기기
+        document.querySelectorAll('.card').forEach((card) => {
+          card.classList.add('hidden');
+        });
+
+        // 전환 화면 표시
+        document
+          .getElementById('consultingTransition')
+          .classList.remove('hidden');
+
+        // 카운트다운 시작
+        let countdown = 5;
+        const countdownEl = document.getElementById('countdownNumber');
+
+        countdownTimer = setInterval(() => {
+          countdown--;
+          countdownEl.textContent = countdown;
+
+          if (countdown === 0) {
+            clearInterval(countdownTimer);
+            goToConsulting();
+          }
+        }, 1000);
+      }
+
+      // 컨설팅 페이지로 이동 함수 추가
+      function goToConsulting() {
+        if (countdownTimer) clearInterval(countdownTimer);
+
+        const params = new URLSearchParams({
+          from: 'test_download',
+          phone: currentUser.parent_phone,
+          name: currentUser.student_name,
+          seminar: currentUser.seminar_id || selectedSeminar,
+          auto: 'true',
+        });
+
+        window.location.href = `consulting.html?${params}`;
+      }
+
+      // 나중에 예약하기 함수 추가
+      function skipConsulting() {
+        if (countdownTimer) clearInterval(countdownTimer);
+
+        alert(
+          '✅ 진단검사 다운로드가 완료되었습니다!\n\n' +
+            `📝 검사 유형: ${selectedTest}${
+              selectedHMEGrade ? ` (${selectedHMEGrade})` : ''
+            }\n` +
+            `👤 학생명: ${currentUser.student_name}\n` +
+            `🏫 학교: ${currentUser.school} ${currentUser.grade}\n\n` +
+            '📧 컨설팅 예약 링크는 추후 문자로 발송됩니다.\n' +
+            '📞 문의: 031-698-3400'
+        );
+
+        // 처음으로 돌아가기
+        window.location.reload();
       }
 
       // 네비게이션 함수
