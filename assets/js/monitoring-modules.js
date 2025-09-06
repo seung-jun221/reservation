@@ -333,10 +333,17 @@ const TestModule = {
 
     tbody.innerHTML = data
       .map((t, i) => {
-        // 설명회 정보 찾기
+        // ⭐ 여기에 추가! (기존 코드 바로 다음)
         const reservation = GlobalState.filteredReservations.find(
           (r) => r.parent_phone === t.parent_phone
         );
+
+        // ⭐⭐ 새로 추가할 코드
+        const seminarInfo = GlobalState.allSeminars.find(
+          (s) => s.id === t.seminar_id
+        );
+        const seminarName = seminarInfo ? seminarInfo.title : '-';
+
         const hasConsulting = GlobalState.filteredConsultingReservations.some(
           (c) => c.parent_phone === t.parent_phone
         );
@@ -344,25 +351,17 @@ const TestModule = {
         return `
                 <tr>
                     <td>${i + 1}</td>
-                    <td>${reservation?.seminar_name || '-'}</td>
+                    <td>${seminarName}</td>  <!-- ⭐ 여기도 수정! reservation?.seminar_name 대신 seminarName 사용 -->
                     <td>${t.student_name}</td>
                     <td>${t.school}</td>
                     <td>${t.grade}</td>
-                    <td>${t.test_type}</td>
+                    <td>${t.test_type || '-'}</td>
                     <td>${t.downloaded_at ? '✅' : '❌'}</td>
                     <td>${hasConsulting ? '✅' : '-'}</td>
-                    <td>${Utils.formatDate(t.created_at)}</td>
                 </tr>
             `;
       })
       .join('');
-  },
-
-  setupFilters() {
-    const typeFilter = document.getElementById('testTypeFilter');
-    if (typeFilter) {
-      typeFilter.addEventListener('change', () => this.applyFilters());
-    }
   },
 
   applyFilters() {

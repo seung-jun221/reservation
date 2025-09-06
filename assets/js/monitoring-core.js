@@ -37,23 +37,20 @@ const DataLoader = {
     Utils.showLoading(true);
 
     try {
-      // 병렬로 모든 데이터 로드
-      const [
-        seminars,
-        reservations,
-        tests,
-        consultingSlots,
-        consultingReservations,
-      ] = await Promise.all([
-        this.loadSeminars(),
-        this.loadReservations(),
-        this.loadTestApplications(),
-        this.loadConsultingSlots(),
-        this.loadConsultingReservations(),
-      ]);
+      // 1. 먼저 설명회 데이터를 로드하고 저장
+      const seminars = await this.loadSeminars();
+      GlobalState.allSeminars = seminars || [];
+
+      // 2. 그 다음 나머지 데이터를 병렬로 로드
+      const [reservations, tests, consultingSlots, consultingReservations] =
+        await Promise.all([
+          this.loadReservations(), // 이제 allSeminars를 사용할 수 있음
+          this.loadTestApplications(),
+          this.loadConsultingSlots(),
+          this.loadConsultingReservations(),
+        ]);
 
       // 전역 상태에 저장
-      GlobalState.allSeminars = seminars || [];
       GlobalState.allReservations = reservations || [];
       GlobalState.allTestApplications = tests || [];
       GlobalState.allConsultingSlots = consultingSlots || [];
@@ -122,7 +119,7 @@ const DataLoader = {
   async loadTestApplications() {
     const { data, error } = await supabase
       .from('test_applications')
-      .select('*')
+      .select('*') // 조인 제거
       .order('created_at', { ascending: false });
 
     if (error) throw error;
