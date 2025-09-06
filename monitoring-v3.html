@@ -55,42 +55,45 @@
     </header>
 
     <!-- 탭 네비게이션 -->
+    <!-- 탭 네비게이션 -->
     <nav class="tab-navigation">
-      <button
-        class="tab-btn active"
-        data-tab="dashboard"
-        onclick="MonitoringApp.switchTab('dashboard')"
-      >
-        📊 통합 대시보드
-      </button>
-      <button
-        class="tab-btn"
-        data-tab="reservations"
-        onclick="MonitoringApp.switchTab('reservations')"
-      >
-        📋 설명회 예약
-      </button>
-      <button
-        class="tab-btn"
-        data-tab="checkin"
-        onclick="MonitoringApp.switchTab('checkin')"
-      >
-        ✅ 체크인 분석
-      </button>
-      <button
-        class="tab-btn"
-        data-tab="test"
-        onclick="MonitoringApp.switchTab('test')"
-      >
-        📝 진단검사 신청
-      </button>
-      <button
-        class="tab-btn"
-        data-tab="consulting"
-        onclick="MonitoringApp.switchTab('consulting')"
-      >
-        💼 컨설팅 신청
-      </button>
+      <div class="tab-container">
+        <button
+          class="tab-btn active"
+          data-tab="dashboard"
+          onclick="MonitoringApp.switchTab('dashboard')"
+        >
+          <span>대시보드</span>
+        </button>
+        <button
+          class="tab-btn"
+          data-tab="reservations"
+          onclick="MonitoringApp.switchTab('reservations')"
+        >
+          <span>설명회 예약</span>
+        </button>
+        <button
+          class="tab-btn"
+          data-tab="checkin"
+          onclick="MonitoringApp.switchTab('checkin')"
+        >
+          <span>체크인</span>
+        </button>
+        <button
+          class="tab-btn"
+          data-tab="test"
+          onclick="MonitoringApp.switchTab('test')"
+        >
+          <span>진단검사</span>
+        </button>
+        <button
+          class="tab-btn"
+          data-tab="consulting"
+          onclick="MonitoringApp.switchTab('consulting')"
+        >
+          <span>컨설팅</span>
+        </button>
+      </div>
     </nav>
 
     <!-- 메인 컨테이너 -->
@@ -287,65 +290,132 @@
       </section>
 
       <!-- 5. 컨설팅 신청 -->
+      <!-- 컨설팅 신청 섹션 수정 -->
+      <!-- 컨설팅 신청 섹션 개선 버전 -->
       <section id="consulting-tab" class="tab-content">
         <div class="section-header">
           <h2>컨설팅 예약 현황</h2>
-          <div class="view-switcher">
+          <div class="header-actions">
             <button
-              class="view-btn active"
-              onclick="MonitoringApp.switchConsultingView('calendar')"
+              class="btn-excel"
+              onclick="ConsultingModule.exportToExcel()"
             >
-              📅 캘린더 뷰
-            </button>
-            <button
-              class="view-btn"
-              onclick="MonitoringApp.switchConsultingView('list')"
-            >
-              📋 리스트 뷰
+              📊 엑셀 다운로드
             </button>
           </div>
+        </div>
+
+        <!-- 퀵 날짜 선택 버튼들 -->
+        <div class="quick-date-selector" id="quickDateSelector">
+          <!-- 동적으로 생성됨 -->
+        </div>
+
+        <!-- 선택된 날짜 표시 -->
+        <div class="selected-date-header">
+          <h3 id="scheduleDate">2025년 1월 23일 목요일</h3>
+          <span class="schedule-time-range">운영시간: 10:30 ~ 14:30</span>
         </div>
 
         <!-- 컨설팅 통계 -->
         <div class="consulting-stats">
           <div class="consulting-stat-card">
-            <h4>이번주 예약</h4>
-            <div class="consulting-value" id="consultingWeek">0</div>
-          </div>
-          <div class="consulting-stat-card">
-            <h4>오늘 예정</h4>
+            <h4>오늘 예약</h4>
             <div class="consulting-value" id="consultingToday">0</div>
           </div>
           <div class="consulting-stat-card">
-            <h4>완료</h4>
-            <div class="consulting-value" id="consultingCompleted">0</div>
+            <h4>등록확정</h4>
+            <div class="consulting-value" id="consultingConfirmed">0</div>
+          </div>
+          <div class="consulting-stat-card">
+            <h4>재상담 필요</h4>
+            <div class="consulting-value" id="consultingReconsult">0</div>
+          </div>
+          <div class="consulting-stat-card">
+            <h4>노쇼</h4>
+            <div class="consulting-value" id="consultingNoshow">0</div>
           </div>
         </div>
 
-        <!-- 캘린더 뷰 -->
-        <div id="consultingCalendar" class="consulting-calendar">
-          <!-- 동적으로 생성됨 -->
+        <!-- 시간대별 일정 표시 -->
+        <div class="time-schedule-container">
+          <div id="timeScheduleContainer" class="time-schedule">
+            <!-- 시간대별 슬롯이 동적으로 생성됨 -->
+          </div>
         </div>
 
-        <!-- 리스트 뷰 -->
-        <div id="consultingList" class="consulting-list" style="display: none">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>날짜</th>
-                <th>시간</th>
-                <th>학생명</th>
-                <th>학교</th>
-                <th>학년</th>
-                <th>진단검사</th>
-                <th>상태</th>
-                <th>액션</th>
-              </tr>
-            </thead>
-            <tbody id="consultingTableBody">
-              <!-- 동적으로 추가됨 -->
-            </tbody>
-          </table>
+        <!-- 메모 패널 -->
+        <div id="memoPanel" class="memo-panel hidden">
+          <div class="memo-header">
+            <h3>상담 메모</h3>
+            <button class="close-btn" onclick="ConsultingModule.closeMemo()">
+              ✕
+            </button>
+          </div>
+          <div class="memo-content">
+            <div class="memo-student-info">
+              <div id="memoStudentName" class="memo-student-name"></div>
+              <div id="memoStudentGrade" class="memo-student-grade"></div>
+            </div>
+
+            <div class="memo-form">
+              <div class="form-group">
+                <label>학생 유형</label>
+                <select id="studentType" class="form-control">
+                  <option value="">선택</option>
+                  <option value="new">신규</option>
+                  <option value="existing">재원</option>
+                  <option value="returning">복귀</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>등록 상태</label>
+                <select id="memoEnrollmentStatus" class="form-control">
+                  <option value="pending">대기</option>
+                  <option value="confirmed">등록확정</option>
+                  <option value="impossible">등록불가</option>
+                  <option value="reconsult">재상담</option>
+                  <option value="hold">보류</option>
+                  <option value="noshow">노쇼</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>상담 내용</label>
+                <textarea
+                  id="consultationMemo"
+                  class="form-control memo-textarea"
+                  rows="8"
+                  placeholder="상담 내용을 입력하세요..."
+                ></textarea>
+              </div>
+
+              <div class="form-group">
+                <label>상담자</label>
+                <input
+                  type="text"
+                  id="consultedBy"
+                  class="form-control"
+                  placeholder="상담자 이름"
+                />
+              </div>
+
+              <div class="memo-actions">
+                <button
+                  class="btn btn-primary"
+                  onclick="ConsultingModule.saveMemo()"
+                >
+                  💾 저장
+                </button>
+                <button
+                  class="btn btn-secondary"
+                  onclick="ConsultingModule.closeMemo()"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </main>

@@ -149,6 +149,7 @@ const DataLoader = {
   },
 
   // 데이터 필터링
+  // filterData() 함수의 컨설팅 필터링 부분 수정
   filterData() {
     const selectedSeminar = GlobalState.selectedSeminar;
 
@@ -172,15 +173,27 @@ const DataLoader = {
         (r) => r.parent_phone
       );
 
-      // 전화번호로 진단검사와 컨설팅 필터링
+      // 진단검사: seminar_id 직접 필터링 OR 전화번호 매칭
       GlobalState.filteredTestApplications =
-        GlobalState.allTestApplications.filter((t) =>
-          phoneNumbers.includes(t.parent_phone)
+        GlobalState.allTestApplications.filter(
+          (t) =>
+            t.seminar_id === selectedSeminar ||
+            phoneNumbers.includes(t.parent_phone)
         );
+
+      // 컨설팅도 동일하게 수정: 진단검사 신청자의 전화번호도 포함
+      const testPhoneNumbers = GlobalState.allTestApplications
+        .filter((t) => t.seminar_id === selectedSeminar)
+        .map((t) => t.parent_phone);
+
+      // 예약자 전화번호와 진단검사 신청자 전화번호 합치기
+      const allPhoneNumbers = [
+        ...new Set([...phoneNumbers, ...testPhoneNumbers]),
+      ];
 
       GlobalState.filteredConsultingReservations =
         GlobalState.allConsultingReservations.filter((c) =>
-          phoneNumbers.includes(c.parent_phone)
+          allPhoneNumbers.includes(c.parent_phone)
         );
     }
 
