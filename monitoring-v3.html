@@ -100,51 +100,85 @@
     <main class="main-container">
       <!-- 1. 통합 대시보드 -->
       <section id="dashboard-tab" class="tab-content active">
-        <div class="dashboard-grid">
-          <!-- 통계 카드 -->
-          <div class="stats-row">
-            <div class="stat-card">
-              <div class="stat-icon">📋</div>
-              <div class="stat-content">
-                <div class="stat-value" id="totalReservations">0</div>
-                <div class="stat-label">총 예약</div>
+        <!-- 데스크톱 뷰 -->
+        <div class="desktop-view">
+          <div class="dashboard-grid">
+            <!-- 통계 카드 -->
+            <div class="stats-row">
+              <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div class="stat-content">
+                  <div class="stat-value" id="totalReservations">0</div>
+                  <div class="stat-label">총 예약</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                  <div class="stat-value" id="totalCheckins">0</div>
+                  <div class="stat-label">체크인 완료</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">📝</div>
+                <div class="stat-content">
+                  <div class="stat-value" id="totalTests">0</div>
+                  <div class="stat-label">진단검사 신청</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">💼</div>
+                <div class="stat-content">
+                  <div class="stat-value" id="totalConsulting">0</div>
+                  <div class="stat-label">컨설팅 예약</div>
+                </div>
               </div>
             </div>
-            <div class="stat-card">
-              <div class="stat-icon">✅</div>
-              <div class="stat-content">
-                <div class="stat-value" id="totalCheckins">0</div>
-                <div class="stat-label">체크인 완료</div>
-              </div>
+
+            <!-- 전환율 차트 -->
+            <div class="chart-container">
+              <h3>전환 퍼널 분석</h3>
+              <canvas id="funnelChart"></canvas>
             </div>
-            <div class="stat-card">
-              <div class="stat-icon">📝</div>
-              <div class="stat-content">
-                <div class="stat-value" id="totalTests">0</div>
-                <div class="stat-label">진단검사 신청</div>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">💼</div>
-              <div class="stat-content">
-                <div class="stat-value" id="totalConsulting">0</div>
-                <div class="stat-label">컨설팅 예약</div>
+
+            <!-- 최근 활동 -->
+            <div class="recent-activity">
+              <h3>최근 활동</h3>
+              <div id="recentActivityList" class="activity-list">
+                <!-- 동적으로 추가됨 -->
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- 전환율 차트 -->
-          <div class="chart-container">
-            <h3>전환 퍼널 분석</h3>
-            <canvas id="funnelChart"></canvas>
+        <!-- 모바일 뷰 -->
+        <div class="mobile-view">
+          <div class="mobile-stats">
+            <div class="mobile-stat-card">
+              <span class="mobile-stat-label">총 예약</span>
+              <span class="mobile-stat-value" id="totalReservationsMobile"
+                >0</span
+              >
+            </div>
+            <div class="mobile-stat-card">
+              <span class="mobile-stat-label">체크인</span>
+              <span class="mobile-stat-value" id="totalCheckinsMobile">0</span>
+            </div>
+            <div class="mobile-stat-card">
+              <span class="mobile-stat-label">진단검사</span>
+              <span class="mobile-stat-value" id="totalTestsMobile">0</span>
+            </div>
+            <div class="mobile-stat-card">
+              <span class="mobile-stat-label">컨설팅</span>
+              <span class="mobile-stat-value" id="totalConsultingMobile"
+                >0</span
+              >
+            </div>
           </div>
 
-          <!-- 최근 활동 -->
-          <div class="recent-activity">
-            <h3>최근 활동</h3>
-            <div id="recentActivityList" class="activity-list">
-              <!-- 동적으로 추가됨 -->
-            </div>
+          <div class="mobile-chart-container">
+            <h3>전환율</h3>
+            <canvas id="funnelChartMobile"></canvas>
           </div>
         </div>
       </section>
@@ -169,26 +203,36 @@
           </div>
         </div>
 
-        <div class="table-container">
-          <table class="data-table" id="reservationsTable">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>설명회</th>
-                <th>학생명</th>
-                <th>연락처</th>
-                <th>학교</th>
-                <th>학년</th>
-                <th>상태</th>
-                <th>체크인</th>
-                <th>등록일시</th>
-                <th>액션</th>
-              </tr>
-            </thead>
-            <tbody id="reservationsTableBody">
-              <!-- 동적으로 추가됨 -->
-            </tbody>
-          </table>
+        <!-- 데스크톱 뷰 -->
+        <div class="desktop-view">
+          <div class="table-container">
+            <table class="data-table" id="reservationsTable">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>설명회</th>
+                  <th>학생명</th>
+                  <th>연락처</th>
+                  <th>학교</th>
+                  <th>학년</th>
+                  <th>상태</th>
+                  <th>체크인</th>
+                  <th>등록일시</th>
+                  <th>액션</th>
+                </tr>
+              </thead>
+              <tbody id="reservationsTableBody">
+                <!-- 동적으로 추가됨 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 모바일 뷰 -->
+        <div class="mobile-view">
+          <div class="mobile-reservations-list" id="mobileReservationsList">
+            <!-- 동적으로 추가됨 -->
+          </div>
         </div>
       </section>
 
@@ -210,7 +254,7 @@
             <div class="checkin-percent" id="checkinTestPercent">0%</div>
           </div>
           <div class="checkin-stat-card">
-            <h4>컨설팅 선택</h4>
+            <h4>상담희망</h4>
             <div class="checkin-value" id="checkinConsult">0</div>
             <div class="checkin-percent" id="checkinConsultPercent">0%</div>
           </div>
@@ -225,6 +269,8 @@
                 <th>설명회</th>
                 <th>체크인 유형</th>
                 <th>선택 항목</th>
+                <th>연락처</th>
+                <th>상태</th>
               </tr>
             </thead>
             <tbody id="checkinTableBody">
@@ -290,61 +336,73 @@
       </section>
 
       <!-- 5. 컨설팅 신청 -->
-      <!-- 컨설팅 신청 섹션 수정 -->
-      <!-- 컨설팅 신청 섹션 개선 버전 -->
       <section id="consulting-tab" class="tab-content">
-        <div class="section-header">
-          <h2>컨설팅 예약 현황</h2>
-          <div class="header-actions">
-            <button
-              class="btn-excel"
-              onclick="ConsultingModule.exportToExcel()"
-            >
-              📊 엑셀 다운로드
-            </button>
+        <!-- 데스크톱 뷰 -->
+        <div class="desktop-view">
+          <div class="section-header">
+            <h2>컨설팅 예약 현황</h2>
+            <div class="header-actions">
+              <button
+                class="btn-excel"
+                onclick="ConsultingModule.exportToExcel()"
+              >
+                📊 엑셀 다운로드
+              </button>
+            </div>
+          </div>
+
+          <!-- 퀵 날짜 선택 버튼들 -->
+          <div class="quick-date-selector" id="quickDateSelector">
+            <!-- 동적으로 생성됨 -->
+          </div>
+
+          <!-- 선택된 날짜 표시 -->
+          <div class="selected-date-header">
+            <h3 id="scheduleDate">2025년 1월 23일 목요일</h3>
+            <span class="schedule-time-range">운영시간: 10:30 ~ 14:30</span>
+          </div>
+
+          <!-- 컨설팅 통계 -->
+          <div class="consulting-stats">
+            <div class="consulting-stat-card">
+              <h4>오늘 예약</h4>
+              <div class="consulting-value" id="consultingToday">0</div>
+            </div>
+            <div class="consulting-stat-card">
+              <h4>등록확정</h4>
+              <div class="consulting-value" id="consultingConfirmed">0</div>
+            </div>
+            <div class="consulting-stat-card">
+              <h4>재상담 필요</h4>
+              <div class="consulting-value" id="consultingReconsult">0</div>
+            </div>
+            <div class="consulting-stat-card">
+              <h4>노쇼</h4>
+              <div class="consulting-value" id="consultingNoshow">0</div>
+            </div>
+          </div>
+
+          <!-- 시간대별 일정 표시 -->
+          <div class="time-schedule-container">
+            <div id="timeScheduleContainer" class="time-schedule">
+              <!-- 시간대별 슬롯이 동적으로 생성됨 -->
+            </div>
           </div>
         </div>
 
-        <!-- 퀵 날짜 선택 버튼들 -->
-        <div class="quick-date-selector" id="quickDateSelector">
-          <!-- 동적으로 생성됨 -->
-        </div>
+        <!-- 모바일 뷰 -->
+        <div class="mobile-view">
+          <div class="mobile-consulting-header">
+            <h3 id="scheduleDateMobile">1월 23일 목요일</h3>
+          </div>
 
-        <!-- 선택된 날짜 표시 -->
-        <div class="selected-date-header">
-          <h3 id="scheduleDate">2025년 1월 23일 목요일</h3>
-          <span class="schedule-time-range">운영시간: 10:30 ~ 14:30</span>
-        </div>
-
-        <!-- 컨설팅 통계 -->
-        <div class="consulting-stats">
-          <div class="consulting-stat-card">
-            <h4>오늘 예약</h4>
-            <div class="consulting-value" id="consultingToday">0</div>
-          </div>
-          <div class="consulting-stat-card">
-            <h4>등록확정</h4>
-            <div class="consulting-value" id="consultingConfirmed">0</div>
-          </div>
-          <div class="consulting-stat-card">
-            <h4>재상담 필요</h4>
-            <div class="consulting-value" id="consultingReconsult">0</div>
-          </div>
-          <div class="consulting-stat-card">
-            <h4>노쇼</h4>
-            <div class="consulting-value" id="consultingNoshow">0</div>
-          </div>
-        </div>
-
-        <!-- 시간대별 일정 표시 -->
-        <div class="time-schedule-container">
-          <div id="timeScheduleContainer" class="time-schedule">
-            <!-- 시간대별 슬롯이 동적으로 생성됨 -->
+          <div class="mobile-consulting" id="mobileConsultingContainer">
+            <!-- 동적으로 생성됨 -->
           </div>
         </div>
 
         <!-- 메모 패널 -->
-        <div id="memoPanel" class="memo-panel hidden">
+        <div id="memoPanel" class="memo-panel">
           <div class="memo-header">
             <h3>상담 메모</h3>
             <button class="close-btn" onclick="ConsultingModule.closeMemo()">
@@ -419,6 +477,24 @@
         </div>
       </section>
     </main>
+
+    <!-- FAB 메뉴 (모바일) -->
+    <div class="fab-container">
+      <button class="fab-main" onclick="MonitoringApp.toggleFabMenu()">
+        <span class="fab-icon">+</span>
+      </button>
+      <div class="fab-menu hidden" id="fabMenu">
+        <button class="fab-item" onclick="MonitoringApp.exportToExcel()">
+          <span>📊</span> 엑셀
+        </button>
+        <button class="fab-item" onclick="MonitoringApp.refreshData()">
+          <span>🔄</span> 새로고침
+        </button>
+        <button class="fab-item" onclick="MonitoringApp.scrollToTop()">
+          <span>⬆️</span> 맨 위로
+        </button>
+      </div>
+    </div>
 
     <!-- 로딩 오버레이 -->
     <div id="loadingOverlay" class="loading-overlay" style="display: none">

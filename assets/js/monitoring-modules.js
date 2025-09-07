@@ -983,8 +983,19 @@ const ConsultingModule = {
     }
   },
 
-  // 시간대별 슬롯 렌더링
+  // ConsultingModule의 renderTimeSlots 메서드 전체 코드
+
   renderTimeSlots(slots, reservations) {
+    // 모바일/데스크톱 분기
+    if (MonitoringApp.isMobile) {
+      this.renderMobileTimeSlots(slots, reservations);
+    } else {
+      this.renderDesktopTimeSlots(slots, reservations);
+    }
+  },
+
+  // 데스크톱 렌더링
+  renderDesktopTimeSlots(slots, reservations) {
     const container = document.getElementById('timeScheduleContainer');
     if (!container) return;
 
@@ -1001,21 +1012,167 @@ const ConsultingModule = {
       const slotClass = reservation ? 'reserved' : 'empty';
 
       html += `
-        <div class="time-slot ${slotClass}" data-time="${time}">
-          <div class="time-label">${time}</div>
-          <div class="slot-content">
-            ${
-              reservation
-                ? this.renderReservation(reservation)
-                : this.renderEmptySlot(time)
-            }
-          </div>
+      <div class="time-slot ${slotClass}" data-time="${time}">
+        <div class="time-label">${time}</div>
+        <div class="slot-content">
+          ${
+            reservation
+              ? this.renderReservation(reservation)
+              : this.renderEmptySlot(time)
+          }
         </div>
-      `;
+      </div>
+    `;
     });
 
     container.innerHTML = html;
     this.attachEventListeners();
+  },
+
+  // 모바일 렌더링
+  renderMobileTimeSlots(slots, reservations) {
+    const container = document.getElementById('mobileConsultingContainer');
+    if (!container) return;
+
+    let html = '';
+
+    this.timeSlots.forEach((time) => {
+      const slot = slots.find((s) => s.time && s.time.startsWith(time));
+      const reservation = slot
+        ? reservations.find(
+            (r) => r.slot_id === slot.id && r.status !== 'cancelled'
+          )
+        : null;
+
+      if (reservation) {
+        html += `
+        <div class="mobile-time-slot">
+          <div class="mobile-time-header reserved">${time}</div>
+          <div class="mobile-slot-content">
+            <div class="mobile-student-info">
+              <div class="mobile-student-name">${reservation.student_name}</div>
+              <div class="mobile-student-details">
+                ${reservation.grade} · ${reservation.school}<br>
+                📖 ${reservation.math_level || '확인필요'}<br>
+                📞 ${this.formatPhone(reservation.parent_phone)}
+              </div>
+            </div>
+            <div class="mobile-actions">
+              <select class="status-select status-${
+                reservation.enrollment_status || 'pending'
+              }" 
+                      onchange="ConsultingModule.updateEnrollmentStatus('${
+                        reservation.id
+                      }', this.value)">
+                <option value="pending" ${
+                  reservation.enrollment_status === 'pending' ? 'selected' : ''
+                }>대기</option>
+                <option value="confirmed" ${
+                  reservation.enrollment_status === 'confirmed'
+                    ? 'selected'
+                    : ''
+                }>등록확정</option>
+                <option value="impossible" ${
+                  reservation.enrollment_status === 'impossible'
+                    ? 'selected'
+                    : ''
+                }>등록불가</option>
+                <option value="reconsult" ${
+                  reservation.enrollment_status === 'reconsult'
+                    ? 'selected'
+                    : ''
+                }>재상담</option>
+                <option value="hold" ${
+                  reservation.enrollment_status === 'hold' ? 'selected' : ''
+                }>보류</option>
+                <option value="noshow" ${
+                  reservation.enrollment_status === 'noshow' ? 'selected' : ''
+                }>노쇼</option>
+              </select>
+              <button class="memo-btn" onclick="ConsultingModule.openMemo('${
+                reservation.id
+              }')">
+                메모
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      } else {
+        html += `
+        <div class="mobile-time-slot">
+          <div class="mobile-time-header">${time}</div>
+          <div class="mobile-slot-content">
+            <div class="empty-slot">예약 가능</div>
+          </div>
+        </div>
+      `;
+      }
+    });
+
+    container.innerHTML = html;
+  },
+
+  // 기존 renderReservation 메서드 (데스크톱용)
+  renderReservation(reservation) {
+    return `
+    <div class="reservation-card">
+      <div class="info-section">
+        <span class="student-name">${reservation.student_name}</span>
+        <span class="divider">|</span>
+        <span class="grade">${reservation.grade}</span>
+        <span class="school">${reservation.school}</span>
+        <span class="divider">|</span>
+        <span class="math-level">${reservation.math_level || '확인필요'}</span>
+        <span class="divider">|</span>
+        <span class="phone">${this.formatPhone(reservation.parent_phone)}</span>
+      </div>
+      <div class="action-section">
+        <div class="test-badge">${reservation.test_type || '미선택'}</div>
+        <select class="status-select status-${
+          reservation.enrollment_status || 'pending'
+        }" 
+                onchange="ConsultingModule.updateEnrollmentStatus('${
+                  reservation.id
+                }', this.value)">
+          <option value="pending" ${
+            reservation.enrollment_status === 'pending' ? 'selected' : ''
+          }>대기</option>
+          <option value="confirmed" ${
+            reservation.enrollment_status === 'confirmed' ? 'selected' : ''
+          }>등록확정</option>
+          <option value="impossible" ${
+            reservation.enrollment_status === 'impossible' ? 'selected' : ''
+          }>등록불가</option>
+          <option value="reconsult" ${
+            reservation.enrollment_status === 'reconsult' ? 'selected' : ''
+          }>재상담</option>
+          <option value="hold" ${
+            reservation.enrollment_status === 'hold' ? 'selected' : ''
+          }>보류</option>
+          <option value="noshow" ${
+            reservation.enrollment_status === 'noshow' ? 'selected' : ''
+          }>노쇼</option>
+        </select>
+        <button class="memo-btn" onclick="ConsultingModule.openMemo('${
+          reservation.id
+        }')">메모</button>
+      </div>
+    </div>
+  `;
+  },
+
+  // 빈 슬롯 렌더링 (데스크톱용)
+  renderEmptySlot(time) {
+    return '<div class="empty-slot">예약 가능</div>';
+  },
+
+  // 이벤트 리스너 연결
+  attachEventListeners() {
+    // 데스크톱에서만 필요한 이벤트 리스너
+    if (!MonitoringApp.isMobile) {
+      // 예: 슬롯 클릭 이벤트 등
+    }
   },
 
   // 예약 정보 렌더링 (개선된 버전)

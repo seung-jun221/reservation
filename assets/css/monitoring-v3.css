@@ -1772,3 +1772,254 @@ th[onclick]:hover {
 .phone-number {
   display: none !important;
 }
+/* ===== 모바일 기본 설정 ===== */
+.mobile-view {
+  display: none;
+}
+
+body.mobile .desktop-view {
+  display: none;
+}
+
+body.mobile .mobile-view {
+  display: block;
+}
+
+/* ===== 모바일 헤더 ===== */
+@media (max-width: 768px) {
+  .global-header {
+    padding: 10px;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+  }
+
+  .header-content {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .header-title {
+    font-size: 16px;
+  }
+
+  .main-container {
+    margin-top: 100px;
+    padding: 10px;
+  }
+}
+
+/* ===== 모바일 탭 네비게이션 ===== */
+@media (max-width: 768px) {
+  .tab-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .tab-btn {
+    min-width: 80px;
+    padding: 10px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .tab-btn::before,
+  .tab-btn::after {
+    display: none;
+  }
+}
+
+/* ===== 모바일 통계 카드 ===== */
+.mobile-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-stat-card {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mobile-stat-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.mobile-stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a73e8;
+}
+
+/* ===== 모바일 컨설팅 뷰 ===== */
+.mobile-consulting {
+  padding: 10px 0;
+}
+
+.mobile-time-slot {
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.mobile-time-header {
+  background: #f8f9fa;
+  padding: 10px 15px;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.mobile-time-header.reserved {
+  background: #e3f2fd;
+  color: #1a73e8;
+}
+
+.mobile-slot-content {
+  padding: 15px;
+}
+
+.mobile-student-info {
+  margin-bottom: 10px;
+}
+
+.mobile-student-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.mobile-student-details {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.mobile-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.mobile-actions select,
+.mobile-actions button {
+  flex: 1;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+/* ===== FAB (Floating Action Button) ===== */
+.fab-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 999;
+  display: none;
+}
+
+body.mobile .fab-container {
+  display: block;
+}
+
+.fab-main {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #1a73e8;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.4);
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 24px;
+}
+
+.fab-main:active {
+  transform: scale(0.95);
+}
+
+.fab-menu {
+  position: absolute;
+  bottom: 70px;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  transition: all 0.3s;
+}
+
+.fab-menu.hidden {
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.fab-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 140px;
+  padding: 12px;
+  background: white;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.fab-item:hover {
+  background: #f5f5f5;
+}
+
+/* ===== 모바일 테이블 최적화 ===== */
+@media (max-width: 768px) {
+  .table-container {
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .data-table {
+    font-size: 11px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 8px 4px;
+  }
+
+  /* 불필요한 컬럼 숨기기 */
+  .data-table th:nth-child(n + 6),
+  .data-table td:nth-child(n + 6) {
+    display: none;
+  }
+}
+
+/* ===== 터치 최적화 ===== */
+@media (max-width: 768px) {
+  button,
+  select,
+  input,
+  .tab-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .status-select {
+    font-size: 16px; /* iOS 자동 줌 방지 */
+  }
+}
