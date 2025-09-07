@@ -20,15 +20,34 @@ const DashboardModule = {
       totalConsulting: GlobalState.filteredConsultingReservations.length,
     };
 
-    // UI 업데이트
+    // 데스크톱 UI 업데이트 (기존 로직 유지)
     Object.keys(stats).forEach((key) => {
       const el = document.getElementById(key);
       if (el) el.textContent = stats[key];
     });
+
+    // 모바일 UI 업데이트 추가
+    if (MonitoringApp.isMobile) {
+      const mobileElements = {
+        totalReservationsMobile: stats.totalReservations,
+        totalCheckinsMobile: stats.totalCheckins,
+        totalTestsMobile: stats.totalTests,
+        totalConsultingMobile: stats.totalConsulting,
+      };
+
+      for (const [id, value] of Object.entries(mobileElements)) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+      }
+    }
   },
 
   initChart() {
-    const ctx = document.getElementById('funnelChart');
+    // 모바일과 데스크톱 차트 ID 구분
+    const canvasId = MonitoringApp.isMobile
+      ? 'funnelChartMobile'
+      : 'funnelChart';
+    const ctx = document.getElementById(canvasId);
     if (!ctx) return;
 
     // 기존 차트 제거
@@ -145,6 +164,15 @@ const ReservationsModule = {
   },
 
   renderTable() {
+    // 모바일과 데스크톱 분기
+    if (MonitoringApp.isMobile) {
+      this.renderMobileList();
+    } else {
+      this.renderDesktopTable();
+    }
+  },
+
+  renderDesktopTable() {
     const tbody = document.getElementById('reservationsTableBody');
     if (!tbody) return;
 
@@ -172,6 +200,49 @@ const ReservationsModule = {
         `
       )
       .join('');
+  },
+
+  renderMobileList() {
+    const container = document.getElementById('mobileReservationsList');
+    if (!container) return;
+
+    const data = GlobalState.filteredReservations;
+
+    let html = '';
+    data.forEach((r, index) => {
+      html += `
+        <div class="mobile-reservation-card">
+          <div class="mobile-card-header">
+            <span class="mobile-name">${r.student_name}</span>
+            <span class="mobile-status status-${r.status}">${r.status}</span>
+          </div>
+          <div class="mobile-card-body">
+            <div class="mobile-info-row">
+              <span>${r.school} · ${r.grade}</span>
+            </div>
+            <div class="mobile-info-row">
+              <span>📞 ${Utils.formatPhone(r.parent_phone)}</span>
+            </div>
+            <div class="mobile-info-row">
+              <span>📅 ${r.seminar_name || '미정'}</span>
+            </div>
+            <div class="mobile-card-meta">
+              ${r.attendance_checked_at ? '✅ 체크인 완료' : '⏳ 체크인 대기'}
+            </div>
+          </div>
+          <div class="mobile-card-actions">
+            ${
+              !r.attendance_checked_at
+                ? `<button class="mobile-checkin-btn" onclick="ReservationsModule.checkIn('${r.id}')">체크인</button>`
+                : ''
+            }
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML =
+      html || '<div class="no-data">예약 데이터가 없습니다</div>';
   },
 
   setupFilters() {
@@ -1031,8 +1102,22 @@ const ConsultingModule = {
 
   // 모바일 렌더링
   renderMobileTimeSlots(slots, reservations) {
-    const container = document.getElementById('mobileConsultingContainer');
-    if (!container) return;
+    // ID 수정: mobileConsultingContainer -> mobileConsulting
+    const container = document.getElementById('mobileConsulting');
+    if (!container) {
+      console.warn('모바일 컨설팅 컨테이너를 찾을 수 없습니다');
+      return;
+    }
+
+    // 모바일 날짜 헤더 업데이트
+    const mobileDate = document.getElementById('scheduleDateMobile');
+    if (mobileDate) {
+      const date = new Date(this.selectedDate);
+      const dateStr = `${date.getMonth() + 1}월 ${date.getDate()}일 ${
+        ['일', '월', '화', '수', '목', '금', '토'][date.getDay()]
+      }요일`;
+      mobileDate.textContent = dateStr;
+    }
 
     let html = '';
 
@@ -1110,7 +1195,8 @@ const ConsultingModule = {
       }
     });
 
-    container.innerHTML = html;
+    container.innerHTML =
+      html || '<div class="no-data">예약 데이터가 없습니다</div>';
   },
 
   // 기존 renderReservation 메서드 (데스크톱용)

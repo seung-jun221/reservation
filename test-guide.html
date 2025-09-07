@@ -1455,6 +1455,8 @@
       async function recordDownload() {
         try {
           console.log('=== 다운로드 기록 시작 ===');
+          console.log('선택된 시험:', selectedTest);
+          console.log('HME 학년:', selectedHMEGrade);
 
           // currentUser 검증 및 필드 매핑
           if (!currentUser) {
@@ -1486,18 +1488,19 @@
           const kstTime = new Date(Date.now() + kstOffset);
           const downloadTime = kstTime.toISOString().replace('Z', '+09:00');
 
+          // test_type 값 결정 (HME는 학년 포함)
+          const testTypeValue =
+            selectedTest === 'HME' && selectedHMEGrade
+              ? `HME_${selectedHMEGrade}`
+              : selectedTest;
+
           if (existing) {
             // 기존 레코드 UPDATE
             const updateData = {
-              test_type: selectedTest,
+              test_type: testTypeValue,
               downloaded_at: downloadTime,
               seminar_id: currentUser.seminar_id || selectedSeminar,
             };
-
-            // HME인 경우에만 hme_grade 추가
-            if (selectedTest === 'HME' && selectedHMEGrade) {
-              updateData.hme_grade = selectedHMEGrade;
-            }
 
             const { data, error } = await supabase
               .from('test_applications')
@@ -1515,14 +1518,10 @@
               school: currentUser.school || '미입력',
               grade: currentUser.grade || '미입력',
               math_level: currentUser.math_level || '미입력',
-              test_type: selectedTest,
+              test_type: testTypeValue,
               downloaded_at: downloadTime,
               seminar_id: currentUser.seminar_id || selectedSeminar,
             };
-
-            if (selectedTest === 'HME' && selectedHMEGrade) {
-              testData.hme_grade = selectedHMEGrade;
-            }
 
             const { data, error } = await supabase
               .from('test_applications')
@@ -1538,8 +1537,7 @@
             'testUser',
             JSON.stringify({
               ...currentUser,
-              test_type: selectedTest,
-              hme_grade: selectedHMEGrade,
+              test_type: testTypeValue,
               downloaded_at: new Date().toISOString(),
             })
           );

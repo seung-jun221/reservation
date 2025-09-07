@@ -61,6 +61,13 @@ const MonitoringApp = {
     document.body.classList.toggle('mobile', this.isMobile);
     document.body.classList.toggle('desktop', !this.isMobile);
 
+    // 디버깅용 로그 추가
+    console.log(
+      'Mobile class added:',
+      document.body.classList.contains('mobile')
+    );
+    console.log('Current classes:', document.body.className);
+
     // 모바일일 때 뷰포트 메타 태그 조정
     if (this.isMobile) {
       this.setMobileViewport();
